@@ -44,8 +44,13 @@ func (par *Parser) Parse(arguments []string) error {
 	sink = &par.Positional
 	lastFlag := ""
 
-	for _, arg := range arguments {
+	for i, arg := range arguments {
 		if strings.HasPrefix(arg, "-") {
+			// Make sure the flag has an associated value (will need to be adjusted for booleans).
+			if i == len(arguments)-1 {
+				return fmt.Errorf("flag %s requires a value but none was provided", arg)
+			}
+
 			var known bool
 			sink, known = allFlags[arg]
 			if !known {
