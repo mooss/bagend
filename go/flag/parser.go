@@ -46,22 +46,31 @@ func (par *Parser) Parse(arguments []string) error {
 
 	for i, arg := range arguments {
 		if strings.HasPrefix(arg, "-") {
-			// Make sure the flag has an associated value (will need to be adjusted for booleans).
-			if i == len(arguments)-1 {
-				return fmt.Errorf("flag %s requires a value but none was provided", arg)
-			}
-
 			var known bool
 			sink, known = allFlags[arg]
 			if !known {
 				return fmt.Errorf("unknown flag: %s", arg)
 			}
 
+			// Handle boolean flags.
+			if is[*singletonflag[bool, Bool]](sink) {
+				if err := sink.consume("true"); err != nil {
+					return fmt.Errorf("when consuming %s (%s): %w", arg, sink.what(), err)
+				}
+
+				sink = &par.Positional
+				continue
+			}
+
+			// Non-boolean flags need an associated value.
+			if i == len(arguments)-1 {
+				return fmt.Errorf("flag %s requires a value but none was provided", arg)
+			}
+
 			lastFlag = arg
 			continue
 		}
 
-		// The sink must be checked before the first consumption to later allow for boolean flags.
 		if sink.full() {
 			sink = &par.Positional
 		}
@@ -84,6 +93,7 @@ func (par *Parser) Parse(arguments []string) error {
 // Registration //
 
 // Register registers a singleton flag to a parser.
+// Registering different flags to the same destination is undefined behavior.
 func Register[D Decoder[T], T any](par *Parser, name string, dest *T, docline string) FluentFlag[T] {
 	flg := singletonflag[T, D]{
 		flagBase[T]{
@@ -99,6 +109,7 @@ func Register[D Decoder[T], T any](par *Parser, name string, dest *T, docline st
 }
 
 // RegisterSlice registers a slice flag to a parser.
+// Registering different flags to the same destination is undefined behavior.
 func RegisterSlice[Dec Decoder[T], T any](par *Parser, name string, dest *[]T, docline string) FluentFlag[[]T] {
 	flg := sliceFlag[T, Dec]{
 		flagBase[[]T]{
@@ -160,6 +171,14 @@ func (par *Parser) errdef(err error) {
 	par.flagDefErrors = append(par.flagDefErrors, err)
 }
 
+func (par *Parser) registerflag(flg flag) {
+	if err := par.flags.add(name2flag(flg.names()[0]), flg); err != nil {
+		par.errdef(err)
+	}
+
+	par.canonical = append(par.canonical, flg)
+}
+
 func name2flag(name string) string {
 	switch len(name) {
 	case 0:
@@ -171,10 +190,7 @@ func name2flag(name string) string {
 	}
 }
 
-func (par *Parser) registerflag(flg flag) {
-	if err := par.flags.add(name2flag(flg.names()[0]), flg); err != nil {
-		par.errdef(err)
-	}
-
-	par.canonical = append(par.canonical, flg)
+func is[T any](value any) bool {
+	_, res := value.(T)
+	return res
 }

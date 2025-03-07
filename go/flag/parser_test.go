@@ -165,6 +165,16 @@ func TestParser_FlagTypes(t *testing.T) {
 			args:        []string{"--int_flag", "abc"},
 			expectValue: 0,
 		},
+		{
+			name:        "bool_present",
+			args:        []string{"positional", "--flag"},
+			expectValue: true,
+		},
+		{
+			name:        "bool_absent",
+			args:        nil,
+			expectValue: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -253,5 +263,15 @@ func TestParser_DefaultValues(t *testing.T) {
 		RegisterSlice[Int](par, "flag", &s, "test flag").Default([]int{1, 2, 3})
 		noErr(t, par.Parse([]string{}))
 		eq(t, []int{1, 2, 3}, s)
+	})
+}
+
+func TestParser_BooleanFlags(t *testing.T) {
+	t.Run("boolean flag default value", func(t *testing.T) {
+		par := NewParser()
+		var b bool = true
+		Register[Bool](par, "flag", &b, "test flag").Default(false)
+		noErr(t, par.Parse([]string{}))
+		eq(t, false, b)
 	})
 }

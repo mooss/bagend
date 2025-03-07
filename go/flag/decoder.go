@@ -24,3 +24,9 @@ type String struct{}
 func (String) Decode(source string) (string, error) {
 	return source, nil
 }
+
+type Bool struct{}
+
+func (Bool) Decode(source string) (bool, error) {
+	return strconv.ParseBool(source)
+}

@@ -22,17 +22,21 @@ func main() {
 		twentythree int
 		eight       []int
 		four        string
+		hatch       bool
 	)
 
 	flg[flag.Int]("twentythree", &twentythree, "23").Default(23).Alias("23")
 	sflg[flag.Int]("eight", &eight, "8").Default([]int{8}).Alias("8")
 	flg[flag.String]("four", &four, "8").Default("4").Alias("4")
+	flg[flag.Bool]("hatch", &hatch, "the hatch")
 
-	if err := parser.Parse(strings.Split("4 -8 15 16 --23 42", " ")); err != nil {
+	if err := parser.Parse(strings.Split("4 -8 15 16 --23 42 --hatch 3", " ")); err != nil {
 		panic(err)
 	}
 
 	fmt.Println(":23", twentythree)
 	fmt.Println(":8", eight)
 	fmt.Println(":4", four)
+	fmt.Println(":hatch", hatch)
+	fmt.Println(":positional", parser.Positional)
 }
