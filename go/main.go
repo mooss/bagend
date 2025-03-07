@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mooss/bagend/flag"
+	"github.com/mooss/bagend/go/flag"
 )
 
 func main() {
