@@ -58,7 +58,7 @@ func TestParser_BasicParsing(t *testing.T) {
 		{"unknown flag", []string{"-a"}, true},
 		{"empty flag name", []string{"-"}, true},
 		{"double dash", []string{"--"}, true},
-		{"flag without value", []string{"--flag"}, true}, // TODO: fix parser to fail here.
+		{"flag without value", []string{"--flag"}, true},
 		{"multiple flags", []string{"--flag1", "1", "--flag2", "2"}, false},
 		{"mixed flags and positional", []string{"--flag", "1", "pos1", "pos2"}, false},
 		{"flag after positional", []string{"pos1", "--flag", "1"}, false},
@@ -70,7 +70,7 @@ func TestParser_BasicParsing(t *testing.T) {
 			var i int
 			par := NewParser()
 
-			// We don't care about the flags.
+			// We don't care about where the flags go.
 			Register[Int](par, "flag", &i, "test flag")
 			Register[Int](par, "flag1", &i, "test flag1")
 			Register[Int](par, "flag2", &i, "test flag2")
@@ -131,55 +131,25 @@ func flagExpectS[D Decoder[T], T any](t *testing.T, name string, args []string, 
 
 func TestParser_FlagTypes(t *testing.T) {
 	tests := []struct {
-		name        string
-		args        []string
-		expectValue any
+		name     string
+		args     []string
+		expected any
 	}{
-		{
-			name:        "int_flag",
-			args:        []string{"--int_flag", "123"},
-			expectValue: 123,
-		},
-		{
-			name:        "string_flag",
-			args:        []string{"--string_flag", "hello"},
-			expectValue: "hello",
-		},
-		{
-			name:        "int_slice_flag",
-			args:        []string{"--int_slice_flag", "1", "--int_slice_flag", "2"},
-			expectValue: []int{1, 2},
-		},
-		{
-			name:        "string_slice_flag",
-			args:        []string{"--string_slice_flag", "hello", "--string_slice_flag", "world"},
-			expectValue: []string{"hello", "world"},
-		},
-		{
-			name:        "zero_value",
-			args:        []string{},
-			expectValue: 0,
-		},
-		{
-			name:        "invalid_int",
-			args:        []string{"--int_flag", "abc"},
-			expectValue: 0,
-		},
-		{
-			name:        "bool_present",
-			args:        []string{"positional", "--flag"},
-			expectValue: true,
-		},
-		{
-			name:        "bool_absent",
-			args:        nil,
-			expectValue: false,
-		},
+		{"int_flag", []string{"--int_flag", "123"}, 123},
+		{"string_flag", []string{"--string_flag", "hello"}, "hello"},
+		{"int_slice_flag", []string{"--int_slice_flag", "1", "--int_slice_flag", "2"}, []int{1, 2}},
+		{"string_slice_flag",
+			[]string{"--string_slice_flag", "hello", "--string_slice_flag", "world"},
+			[]string{"hello", "world"}},
+		{"zero_value", []string{}, 0},
+		{"invalid_int", []string{"--int_flag", "abc"}, 0},
+		{"bool_present", []string{"positional", "--flag"}, true},
+		{"bool_absent", nil, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			switch concrete := tt.expectValue.(type) {
+			switch concrete := tt.expected.(type) {
 			case int:
 				if tt.name == "invalid_int" {
 					par := NewParser()
@@ -206,26 +176,10 @@ func TestParser_PositionalArguments(t *testing.T) {
 		args     []string
 		expected []string
 	}{
-		{
-			name:     "no flags",
-			args:     []string{"a", "b", "c"},
-			expected: []string{"a", "b", "c"},
-		},
-		{
-			name:     "mixed flags and positional",
-			args:     []string{"--flag", "23", "a", "b"},
-			expected: []string{"a", "b"},
-		},
-		{
-			name:     "positional after flags",
-			args:     []string{"--flag", "23", "a", "--flag2", "42", "b"},
-			expected: []string{"a", "b"},
-		},
-		{
-			name:     "only positional",
-			args:     []string{"a", "b", "c"},
-			expected: []string{"a", "b", "c"},
-		},
+		{"no flags", []string{"a", "b", "c"}, []string{"a", "b", "c"}},
+		{"mixed flags and positional", []string{"--flag", "23", "a", "b"}, []string{"a", "b"}},
+		{"positional after flags", []string{"--flag", "23", "a", "--flag2", "42", "b"}, []string{"a", "b"}},
+		{"only positional", []string{"a", "b", "c"}, []string{"a", "b", "c"}},
 	}
 
 	for _, tt := range tests {
