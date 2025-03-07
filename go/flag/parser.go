@@ -89,41 +89,6 @@ func (par *Parser) Parse(arguments []string) error {
 	return nil
 }
 
-//////////////////
-// Registration //
-
-// Register registers a singleton flag to a parser.
-// Registering different flags to the same destination is undefined behavior.
-func Register[D Decoder[T], T any](par *Parser, name string, dest *T, docline string) FluentFlag[T] {
-	flg := singletonflag[T, D]{
-		flagBase[T]{
-			dest:       dest,
-			docLine:    docline,
-			namesStore: []string{name},
-		},
-	}
-
-	par.registerflag(&flg)
-
-	return &flg
-}
-
-// RegisterSlice registers a slice flag to a parser.
-// Registering different flags to the same destination is undefined behavior.
-func RegisterSlice[Dec Decoder[T], T any](par *Parser, name string, dest *[]T, docline string) FluentFlag[[]T] {
-	flg := sliceFlag[T, Dec]{
-		flagBase[[]T]{
-			dest:       dest,
-			docLine:    docline,
-			namesStore: []string{name},
-		},
-	}
-
-	par.registerflag(&flg)
-
-	return &flg
-}
-
 /////////////
 // flagset //
 

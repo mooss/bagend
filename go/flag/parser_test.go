@@ -71,9 +71,9 @@ func TestParser_BasicParsing(t *testing.T) {
 			par := NewParser()
 
 			// We don't care about where the flags go.
-			Register[Int](par, "flag", &i, "test flag")
-			Register[Int](par, "flag1", &i, "test flag1")
-			Register[Int](par, "flag2", &i, "test flag2")
+			par.Int("flag", &i, "test flag")
+			par.Int("flag1", &i, "test flag1")
+			par.Int("flag2", &i, "test flag2")
 
 			err := par.Parse(tt.args)
 			if tt.expectError {
@@ -89,22 +89,22 @@ func TestParser_FlagRegistration(t *testing.T) {
 	t.Run("duplicate flag", func(t *testing.T) {
 		par := NewParser()
 		var i int
-		Register[Int](par, "flag", &i, "test flag")
-		Register[Int](par, "flag", &i, "test flag")
+		par.Int("flag", &i, "test flag")
+		par.Int("flag", &i, "test flag")
 		yesErr(t, par.Parse(nil))
 	})
 
 	t.Run("empty flag name", func(t *testing.T) {
 		par := NewParser()
 		var i int
-		Register[Int](par, "", &i, "test flag")
+		par.Int("", &i, "test flag")
 		yesErr(t, par.Parse(nil))
 	})
 
 	t.Run("multiple aliases", func(t *testing.T) {
 		par := NewParser()
 		var i int
-		Register[Int](par, "flag", &i, "test flag").Alias("f", "fl")
+		par.Int("flag", &i, "test flag").Alias("f", "fl")
 		noErr(t, par.Parse([]string{"-f", "1"}))
 		eq(t, 1, i)
 	})
@@ -154,7 +154,7 @@ func TestParser_FlagTypes(t *testing.T) {
 				if tt.name == "invalid_int" {
 					par := NewParser()
 					var i int
-					Register[Int](par, "int_flag", &i, "test flag")
+					par.Int("int_flag", &i, "test flag")
 					yesErr(t, par.Parse(tt.args))
 				} else {
 					flagExpect[Int](t, tt.name, tt.args, concrete)
@@ -190,8 +190,8 @@ func TestParser_PositionalArguments(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			par := NewParser()
 			var i int
-			Register[Int](par, "flag", &i, "test flag")
-			Register[Int](par, "flag2", &i, "test flag2")
+			par.Int("flag", &i, "test flag")
+			par.Int("flag2", &i, "test flag2")
 			noErr(t, par.Parse(tt.args))
 			eq(t, tt.expected, []string(par.Positional))
 		})
@@ -202,7 +202,7 @@ func TestParser_DefaultValues(t *testing.T) {
 	t.Run("int default", func(t *testing.T) {
 		par := NewParser()
 		var i int = 42
-		Register[Int](par, "flag", &i, "test flag").Default(23)
+		par.Int("flag", &i, "test flag").Default(23)
 		noErr(t, par.Parse([]string{}))
 		eq(t, 23, i)
 	})
@@ -210,7 +210,7 @@ func TestParser_DefaultValues(t *testing.T) {
 	t.Run("string default", func(t *testing.T) {
 		par := NewParser()
 		var s string = "foo"
-		Register[String](par, "flag", &s, "test flag").Default("bar")
+		par.String("flag", &s, "test flag").Default("bar")
 		noErr(t, par.Parse([]string{}))
 		eq(t, "bar", s)
 	})
@@ -218,7 +218,7 @@ func TestParser_DefaultValues(t *testing.T) {
 	t.Run("slice default", func(t *testing.T) {
 		par := NewParser()
 		var s []int
-		RegisterSlice[Int](par, "flag", &s, "test flag").Default([]int{1, 2, 3})
+		par.IntSlice("flag", &s, "test flag").Default([]int{1, 2, 3})
 		noErr(t, par.Parse([]string{}))
 		eq(t, []int{1, 2, 3}, s)
 	})
@@ -228,7 +228,7 @@ func TestParser_BooleanFlags(t *testing.T) {
 	t.Run("boolean flag default value", func(t *testing.T) {
 		par := NewParser()
 		var b bool = true
-		Register[Bool](par, "flag", &b, "test flag").Default(false)
+		par.Bool("flag", &b, "test flag").Default(false)
 		noErr(t, par.Parse([]string{}))
 		eq(t, false, b)
 	})
