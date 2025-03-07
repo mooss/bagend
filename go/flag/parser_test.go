@@ -143,7 +143,7 @@ func TestParser_FlagTypes(t *testing.T) {
 			[]string{"hello", "world"}},
 		{"zero_value", []string{}, 0},
 		{"invalid_int", []string{"--int_flag", "abc"}, 0},
-		{"bool_present", []string{"positional", "--flag"}, true},
+		{"bool_present", []string{"positional", "--bool_present"}, true},
 		{"bool_absent", nil, false},
 	}
 
@@ -161,10 +161,14 @@ func TestParser_FlagTypes(t *testing.T) {
 				}
 			case string:
 				flagExpect[String](t, tt.name, tt.args, concrete)
+			case bool:
+				flagExpect[Bool](t, tt.name, tt.args, concrete)
 			case []int:
 				flagExpectS[Int](t, tt.name, tt.args, concrete)
 			case []string:
 				flagExpectS[String](t, tt.name, tt.args, concrete)
+			default:
+				t.Errorf("unsupported type %T", tt.expected)
 			}
 		})
 	}
