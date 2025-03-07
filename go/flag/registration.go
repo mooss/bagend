@@ -56,6 +56,6 @@ func (par *Parser) IntSlice(name string, dest *[]int, docline string) FluentFlag
 	return RegisterSlice[Int](par, name, dest, docline)
 }
 
-func (par *Parser) StringSlice(name string, dest *[]int, docline string) FluentFlag[[]int] {
-	return RegisterSlice[Int](par, name, dest, docline)
+func (par *Parser) StringSlice(name string, dest *[]string, docline string) FluentFlag[[]string] {
+	return RegisterSlice[String](par, name, dest, docline)
 }

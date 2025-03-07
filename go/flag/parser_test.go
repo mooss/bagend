@@ -222,6 +222,14 @@ func TestParser_DefaultValues(t *testing.T) {
 		noErr(t, par.Parse([]string{}))
 		eq(t, []int{1, 2, 3}, s)
 	})
+
+	t.Run("string slice default", func(t *testing.T) {
+		par := NewParser()
+		var s []string
+		par.StringSlice("flag", &s, "test flag").Default([]string{"foo", "bar"})
+		noErr(t, par.Parse([]string{}))
+		eq(t, []string{"foo", "bar"}, s)
+	})
 }
 
 func TestParser_BooleanFlags(t *testing.T) {
@@ -232,4 +240,29 @@ func TestParser_BooleanFlags(t *testing.T) {
 		noErr(t, par.Parse([]string{}))
 		eq(t, false, b)
 	})
+}
+
+func TestParser_StringSlice(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		expected []string
+	}{
+		{"single value", []string{"--flag", "hello"}, []string{"hello"}},
+		{"multiple values", []string{"--flag", "hello", "--flag", "world"}, []string{"hello", "world"}},
+		{"mixed with other flags", []string{"--flag", "hello", "--other", "42", "--flag", "world"}, []string{"hello", "world"}},
+		{"no values", []string{}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			par := NewParser()
+			var s []string
+			var i int
+			par.StringSlice("flag", &s, "test flag")
+			par.Int("other", &i, "other flag")
+			noErr(t, par.Parse(tt.args))
+			eq(t, tt.expected, s)
+		})
+	}
 }
