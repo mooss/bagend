@@ -5,6 +5,7 @@ package flag
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -16,15 +17,37 @@ type Parser struct {
 	canonical     []flag
 	flagDefErrors []error
 	Positional    PositionalArguments
+
+	printHelp bool
+	usage     string
 }
 
-func NewParser() *Parser {
-	return &Parser{flags: flagset{}}
+type ParserOpt func(*Parser)
+
+// With help automatically registers a --help|-h flag and exit with an help page when the flag is
+// enabled.
+func WithHelp(arg0, usage string) func(*Parser) {
+	return func(cfg *Parser) {
+		cfg.usage = arg0 + " " + usage
+		cfg.Bool("help", &cfg.printHelp, "Print this help page").Alias("h")
+	}
+}
+
+func NewParser(opts ...ParserOpt) *Parser {
+	res := Parser{flags: flagset{}}
+	for _, opt := range opts {
+		opt(&res)
+	}
+
+	return &res
 }
 
 // Parse parses the given arguments.
-// It must be called only once.
+// It can be called multiple times.
 func (par *Parser) Parse(arguments []string) error {
+	/////////////////
+	// Preparation //
+
 	if len(par.flagDefErrors) > 0 {
 		msg := fmt.Errorf("%d flag definition errors, refusing to parse", len(par.flagDefErrors))
 		return errors.Join(append([]error{msg}, par.flagDefErrors...)...)
@@ -35,6 +58,9 @@ func (par *Parser) Parse(arguments []string) error {
 		msg := fmt.Errorf("%d flag errors after aliases expansion, refusing to parse", len(errs))
 		return errors.Join(append([]error{msg}, errs...)...)
 	}
+
+	//////////////////
+	// Parsing loop //
 
 	var dest sink = &par.Positional
 	lastFlag := ""
@@ -75,6 +101,14 @@ func (par *Parser) Parse(arguments []string) error {
 			// flags with decoders who can return an error.
 			return fmt.Errorf("when consuming %s (%s): %w", lastFlag, dest.kind(), err)
 		}
+	}
+
+	/////////////////////
+	// Post processing //
+
+	if par.printHelp {
+		fmt.Print(par.Help())
+		os.Exit(0)
 	}
 
 	for _, flg := range par.canonical {
