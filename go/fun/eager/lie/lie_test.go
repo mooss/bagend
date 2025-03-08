@@ -4,7 +4,9 @@ import (
 	"testing"
 )
 
-func testMap[From any, To comparable](t *testing.T, name string, input []From, fn func(From) To, expected []To) {
+func testMap[From any, To comparable](
+	t *testing.T, name string, input []From, fn func(From) To, expected []To,
+) {
 	t.Helper()
 	t.Run(name, func(t *testing.T) {
 		result := Map(fn, input)

@@ -19,8 +19,8 @@ type sink interface {
 	consume(string) error
 	// full returns true when the sink has consumed all the values it can.
 	full() bool
-	// kind returns a short explanation of kind kind of sink this is (singleton, slice or positional
-	// argument).
+	// kind returns a short explanation of the kind of sink this is (singleton, slice or positional
+	// argument), with type information if pertinent.
 	kind() string
 }
 
@@ -62,29 +62,29 @@ type flagBase[T any] struct {
 /////////////////////////////////////////
 // FluentFlag interface implementation //
 
-func (fai *flagBase[T]) Alias(aliases ...string) FluentFlag[T] {
-	fai.namesStore = append(fai.namesStore, aliases...)
-	return fai
+func (fb *flagBase[T]) Alias(aliases ...string) FluentFlag[T] {
+	fb.namesStore = append(fb.namesStore, aliases...)
+	return fb
 }
 
-func (fai *flagBase[T]) Default(value T) FluentFlag[T] {
-	fai.def = value
-	return fai
+func (fb *flagBase[T]) Default(value T) FluentFlag[T] {
+	fb.def = value
+	return fb
 }
 
 ///////////////////////////////////////////
 // Part of flag interface implementation //
 
-func (fai flagBase[T]) names() []string {
-	return fai.namesStore
+func (fb flagBase[T]) names() []string {
+	return fb.namesStore
 }
-func (fai flagBase[T]) docline() string {
-	return fai.docLine
+func (fb flagBase[T]) docline() string {
+	return fb.docLine
 }
 
-func (ffs *flagBase[T]) enforceDefault() {
-	if !ffs.alreadySet {
-		*ffs.dest = ffs.def
+func (fb *flagBase[T]) enforceDefault() {
+	if !fb.alreadySet {
+		*fb.dest = fb.def
 	}
 }
 
@@ -100,5 +100,5 @@ func (pa *PositionalArguments) consume(value string) error {
 	return nil
 }
 
-func (pa *PositionalArguments) full() bool   { return false }
-func (pa *PositionalArguments) kind() string { return "positional argument" }
+func (*PositionalArguments) full() bool   { return false }
+func (*PositionalArguments) kind() string { return "positional argument" }

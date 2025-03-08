@@ -14,7 +14,7 @@ type sliceFlag[T any, D Decoder[T]] struct {
 ///////////////////////////////////////////
 // Rest of flag interface implementation //
 
-func (ffs *sliceFlag[T, D]) consume(value string) error {
+func (sf *sliceFlag[T, D]) consume(value string) error {
 	var decoder D
 	// Decode one value.
 	decoded, err := decoder.Decode(value)
@@ -23,17 +23,17 @@ func (ffs *sliceFlag[T, D]) consume(value string) error {
 	}
 
 	// Add the decoded value to the storage.
-	*ffs.dest = append(*ffs.dest, decoded)
-	ffs.alreadySet = true
+	*sf.dest = append(*sf.dest, decoded)
+	sf.alreadySet = true
 
 	return nil
 }
 
-func (ffs *sliceFlag[T, D]) full() bool {
+func (*sliceFlag[T, D]) full() bool {
 	return false // A slice can always consume more elements.
 }
 
-func (ffs *sliceFlag[T, D]) kind() string {
+func (*sliceFlag[T, D]) kind() string {
 	var zero T
 	return fmt.Sprintf("slice of %T", zero)
 }

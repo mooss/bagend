@@ -7,7 +7,9 @@ package flag
 
 // Register registers a singleton flag to a parser.
 // Registering different flags to the same destination is undefined behavior.
-func Register[D Decoder[T], T any](par *Parser, name string, dest *T, docline string) FluentFlag[T] {
+func Register[D Decoder[T], T any](
+	par *Parser, name string, dest *T, docline string,
+) FluentFlag[T] {
 	flg := singletonflag[T, D]{
 		flagBase[T]{
 			dest:       dest,
@@ -23,7 +25,9 @@ func Register[D Decoder[T], T any](par *Parser, name string, dest *T, docline st
 
 // RegisterSlice registers a slice flag to a parser.
 // Registering different flags to the same destination is undefined behavior.
-func RegisterSlice[Dec Decoder[T], T any](par *Parser, name string, dest *[]T, docline string) FluentFlag[[]T] {
+func RegisterSlice[Dec Decoder[T], T any](
+	par *Parser, name string, dest *[]T, docline string,
+) FluentFlag[[]T] {
 	flg := sliceFlag[T, Dec]{
 		flagBase[[]T]{
 			dest:       dest,

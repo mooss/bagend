@@ -49,7 +49,7 @@ Flags:
 		},
 		{
 			"empty parser",
-			func(par *Parser) {},
+			func(*Parser) {},
 			`Usage: 
 
 Flags:

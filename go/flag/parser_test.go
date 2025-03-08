@@ -182,7 +182,9 @@ func TestParser_PositionalArguments(t *testing.T) {
 	}{
 		{"no flags", []string{"a", "b", "c"}, []string{"a", "b", "c"}},
 		{"mixed flags and positional", []string{"--flag", "23", "a", "b"}, []string{"a", "b"}},
-		{"positional after flags", []string{"--flag", "23", "a", "--flag2", "42", "b"}, []string{"a", "b"}},
+		{"positional after flags",
+			[]string{"--flag", "23", "a", "--flag2", "42", "b"},
+			[]string{"a", "b"}},
 		{"only positional", []string{"a", "b", "c"}, []string{"a", "b", "c"}},
 	}
 
@@ -201,7 +203,7 @@ func TestParser_PositionalArguments(t *testing.T) {
 func TestParser_DefaultValues(t *testing.T) {
 	t.Run("int default", func(t *testing.T) {
 		par := NewParser()
-		var i int = 42
+		i := 42
 		par.Int("flag", &i, "test flag").Default(23)
 		noErr(t, par.Parse([]string{}))
 		eq(t, 23, i)
@@ -209,7 +211,7 @@ func TestParser_DefaultValues(t *testing.T) {
 
 	t.Run("string default", func(t *testing.T) {
 		par := NewParser()
-		var s string = "foo"
+		s := "foo"
 		par.String("flag", &s, "test flag").Default("bar")
 		noErr(t, par.Parse([]string{}))
 		eq(t, "bar", s)
@@ -235,7 +237,7 @@ func TestParser_DefaultValues(t *testing.T) {
 func TestParser_BooleanFlags(t *testing.T) {
 	t.Run("boolean flag default value", func(t *testing.T) {
 		par := NewParser()
-		var b bool = true
+		b := true
 		par.Bool("flag", &b, "test flag").Default(false)
 		noErr(t, par.Parse([]string{}))
 		eq(t, false, b)
@@ -249,8 +251,12 @@ func TestParser_StringSlice(t *testing.T) {
 		expected []string
 	}{
 		{"single value", []string{"--flag", "hello"}, []string{"hello"}},
-		{"multiple values", []string{"--flag", "hello", "--flag", "world"}, []string{"hello", "world"}},
-		{"mixed with other flags", []string{"--flag", "hello", "--other", "42", "--flag", "world"}, []string{"hello", "world"}},
+		{"multiple values",
+			[]string{"--flag", "hello", "--flag", "world"},
+			[]string{"hello", "world"}},
+		{"mixed with other flags",
+			[]string{"--flag", "hello", "--other", "42", "--flag", "world"},
+			[]string{"hello", "world"}},
 		{"no values", []string{}, nil},
 	}
 
