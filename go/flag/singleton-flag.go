@@ -29,6 +29,6 @@ func (ffs *singletonflag[T, D]) full() bool {
 	return ffs.alreadySet
 }
 
-func (ffs *singletonflag[T, D]) what() string {
+func (ffs *singletonflag[T, D]) kind() string {
 	return fmt.Sprintf("%T singleton", ffs.def)
 }

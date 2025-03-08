@@ -12,20 +12,31 @@ package flag
 // Interfaces //
 ////////////////
 
-// flag is the interface all registered flags must implement.
-type flag interface {
-	// names returns the names of the flag (the first is the canonical names, the rest are aliases).
-	names() []string
+// sink is the interface used by the parser to process arguments.
+// It is common to flags and positional arguments.
+type sink interface {
 	// consume takes a value and attempts to decode and store it.
 	consume(string) error
+	// full returns true when the sink has consumed all the values it can.
+	full() bool
+	// kind returns a short explanation of kind kind of sink this is (singleton, slice or positional
+	// argument).
+	kind() string
+}
+
+// flag is the interface all registered flags must implement.
+type flag interface {
+	sink
+
+	// Since sink is common to flags and positional arguments, it follows that the following methods
+	// are the essence of a flag.
+
+	// names returns the names of the flag (the first is the canonical names, the rest are aliases).
+	names() []string
 	// docline returns the documentation line of the flag.
 	docline() string
 	// enforceDefault assigns the default value if the flag value has not been set.
 	enforceDefault()
-	// full returns true when the flag has consumed all the values it can.
-	full() bool
-	// what returns the kind of flag this is.
-	what() string
 }
 
 // FluentFlag is the interface that is used for additional configuration of registered flags.
@@ -90,4 +101,4 @@ func (pa *PositionalArguments) consume(value string) error {
 }
 
 func (pa *PositionalArguments) full() bool   { return false }
-func (pa *PositionalArguments) what() string { return "positional argument" }
+func (pa *PositionalArguments) kind() string { return "positional argument" }

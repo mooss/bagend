@@ -36,29 +36,24 @@ func (par *Parser) Parse(arguments []string) error {
 		return errors.Join(append([]error{msg}, errs...)...)
 	}
 
-	var sink interface {
-		consume(string) error
-		full() bool
-		what() string
-	}
-	sink = &par.Positional
+	var dest sink = &par.Positional
 	lastFlag := ""
 
 	for i, arg := range arguments {
 		if strings.HasPrefix(arg, "-") {
 			var known bool
-			sink, known = allFlags[arg]
+			dest, known = allFlags[arg]
 			if !known {
 				return fmt.Errorf("unknown flag: %s", arg)
 			}
 
 			// Handle boolean flags.
-			if is[*singletonflag[bool, Bool]](sink) {
-				if err := sink.consume("true"); err != nil {
-					return fmt.Errorf("when consuming %s (%s): %w", arg, sink.what(), err)
+			if is[*singletonflag[bool, Bool]](dest) {
+				if err := dest.consume("true"); err != nil {
+					return fmt.Errorf("when consuming %s (%s): %w", arg, dest.kind(), err)
 				}
 
-				sink = &par.Positional
+				dest = &par.Positional
 				continue
 			}
 
@@ -71,14 +66,14 @@ func (par *Parser) Parse(arguments []string) error {
 			continue
 		}
 
-		if sink.full() {
-			sink = &par.Positional
+		if dest.full() {
+			dest = &par.Positional
 		}
 
-		if err := sink.consume(arg); err != nil {
+		if err := dest.consume(arg); err != nil {
 			// consume cannot fail on positional arguments, this error can only be triggered by
 			// flags with decoders who can return an error.
-			return fmt.Errorf("when consuming %s (%s): %w", lastFlag, sink.what(), err)
+			return fmt.Errorf("when consuming %s (%s): %w", lastFlag, dest.kind(), err)
 		}
 	}
 
@@ -99,7 +94,7 @@ type flagset map[string]flag
 // flagname is the full flag name, that is to say it is prefixed by `-` or `--`.
 func (fs flagset) add(flagname string, value flag) error {
 	if len(flagname) == 0 {
-		return fmt.Errorf("%s (names: %v) has empty names", value.what(), value.names())
+		return fmt.Errorf("%s (names: %v) has empty names", value.kind(), value.names())
 	}
 
 	if _, exists := fs[flagname]; exists {

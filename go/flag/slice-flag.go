@@ -33,7 +33,7 @@ func (ffs *sliceFlag[T, D]) full() bool {
 	return false // A slice can always consume more elements.
 }
 
-func (ffs *sliceFlag[T, D]) what() string {
+func (ffs *sliceFlag[T, D]) kind() string {
 	var zero T
 	return fmt.Sprintf("slice of %T", zero)
 }
