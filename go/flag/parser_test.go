@@ -286,6 +286,8 @@ func TestParser_InvalidIntArguments(t *testing.T) {
 			var i int
 			par.Int("int_flag", &i, "test flag")
 			yesErr(t, par.Parse(tt.args))
+			// A previous success must not impact failing the following attempts.
+			yesErr(t, par.Parse(append([]string{"--int_flag", "1"}, tt.args...)))
 		})
 	}
 }
