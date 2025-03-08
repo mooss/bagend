@@ -1,0 +1,18 @@
+linters:
+  enable:
+    - errcheck
+    - gofmt
+    - govet
+    - staticcheck
+    - typecheck
+    - unused
+    - revive
+    - dupword
+  # enable-all: true
+
+linters-settings:
+  revive:
+    enable-all-rules: true
+    rules:
+      - name: exported
+        disabled: true
