@@ -272,3 +272,28 @@ func TestParser_StringSlice(t *testing.T) {
 		})
 	}
 }
+
+func TestParser_InvalidIntArguments(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{"empty string", []string{"--int_flag", ""}},
+		{"non-numeric string", []string{"--int_flag", "abc"}},
+		{"float number", []string{"--int_flag", "1.23"}},
+		{"number with spaces", []string{"--int_flag", " 123 "}},
+		{"number with commas", []string{"--int_flag", "1,000"}},
+		{"hex number", []string{"--int_flag", "0xFF"}},
+		{"binary number", []string{"--int_flag", "0b1010"}},
+		{"number with units", []string{"--int_flag", "123KB"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			par := NewParser()
+			var i int
+			par.Int("int_flag", &i, "test flag")
+			yesErr(t, par.Parse(tt.args))
+		})
+	}
+}
