@@ -17,11 +17,14 @@ package flag
 type sink interface {
 	// consume takes a value and attempts to decode and store it.
 	consume(string) error
-	// full returns true when the sink has consumed all the values it can.
-	full() bool
+
+	// arity returns the number of values the sink *must* consume.
+	arity() int
+
 	// kind returns a short explanation of the kind of sink this is (singleton, slice or positional
 	// argument), with type information if pertinent.
 	kind() string
+
 	// names returns the names of the flag (the first is the canonical names, the rest are aliases).
 	names() []string
 }
@@ -32,6 +35,7 @@ type flag interface {
 
 	// docline returns the documentation line of the flag.
 	docline() string
+
 	// enforceDefault assigns the default value if the flag value has not been set.
 	enforceDefault()
 }
@@ -40,6 +44,7 @@ type flag interface {
 type FluentFlag[T any] interface {
 	// Alias register its arguments as aliases.
 	Alias(...string) FluentFlag[T]
+
 	// Default sets the given value as the default.
 	Default(T) FluentFlag[T]
 }
@@ -92,11 +97,12 @@ func (fb *flagBase[T]) enforceDefault() {
 // PositionalArguments implements the subset of flags methods required to consume arguments.
 type PositionalArguments []string
 
+func (*PositionalArguments) arity() int { return -1 }
+
 func (pa *PositionalArguments) consume(value string) error {
 	*pa = append(*pa, value)
 	return nil
 }
 
-func (*PositionalArguments) full() bool      { return false }
 func (*PositionalArguments) kind() string    { return "positional argument" }
 func (*PositionalArguments) names() []string { return []string{"POSARGS"} }

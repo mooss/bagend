@@ -7,7 +7,7 @@ import "fmt"
 // sliceFlag represents a flag that can consume multiple values.
 // It implements both the flag and FluentFlag interfaces.
 type sliceFlag[T any, D Decoder[T]] struct {
-	// flagBase implements the FluentFlat interface and part of the flag interface.
+	// flagBase implements the FluentFlag interface and part of the flag interface.
 	flagBase[[]T]
 }
 
@@ -29,8 +29,8 @@ func (sf *sliceFlag[T, D]) consume(value string) error {
 	return nil
 }
 
-func (*sliceFlag[T, D]) full() bool {
-	return false // A slice can always consume more elements.
+func (*sliceFlag[T, D]) arity() int {
+	return -1 // A slice can always consume more elements.
 }
 
 func (*sliceFlag[T, D]) kind() string {
