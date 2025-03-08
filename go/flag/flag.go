@@ -22,17 +22,14 @@ type sink interface {
 	// kind returns a short explanation of the kind of sink this is (singleton, slice or positional
 	// argument), with type information if pertinent.
 	kind() string
+	// names returns the names of the flag (the first is the canonical names, the rest are aliases).
+	names() []string
 }
 
 // flag is the interface all registered flags must implement.
 type flag interface {
 	sink
 
-	// Since sink is common to flags and positional arguments, it follows that the following methods
-	// are the essence of a flag.
-
-	// names returns the names of the flag (the first is the canonical names, the rest are aliases).
-	names() []string
 	// docline returns the documentation line of the flag.
 	docline() string
 	// enforceDefault assigns the default value if the flag value has not been set.
@@ -100,5 +97,6 @@ func (pa *PositionalArguments) consume(value string) error {
 	return nil
 }
 
-func (*PositionalArguments) full() bool   { return false }
-func (*PositionalArguments) kind() string { return "positional argument" }
+func (*PositionalArguments) full() bool      { return false }
+func (*PositionalArguments) kind() string    { return "positional argument" }
+func (*PositionalArguments) names() []string { return []string{"POSARGS"} }

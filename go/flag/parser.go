@@ -45,67 +45,70 @@ func NewParser(opts ...ParserOpt) *Parser {
 // Parse parses the given arguments.
 // It can be called multiple times.
 func (par *Parser) Parse(arguments []string) error {
-	/////////////////
-	// Preparation //
+	expanded, err := par.validateAndExpand()
+	if err != nil {
+		return err
+	}
 
+	if err := par.processArguments(arguments, expanded); err != nil {
+		return err
+	}
+
+	return par.finalizeParse()
+}
+
+// validateAndExpand checks definitions and expands the flags aliases.
+func (par *Parser) validateAndExpand() (flagset, error) {
 	if len(par.flagDefErrors) > 0 {
 		msg := fmt.Errorf("%d flag definition errors, refusing to parse", len(par.flagDefErrors))
-		return errors.Join(append([]error{msg}, par.flagDefErrors...)...)
+		return nil, errors.Join(append([]error{msg}, par.flagDefErrors...)...)
 	}
 
-	allFlags, errs := par.flags.expand()
+	expanded, errs := par.flags.expand()
 	if errs != nil {
 		msg := fmt.Errorf("%d flag errors after aliases expansion, refusing to parse", len(errs))
-		return errors.Join(append([]error{msg}, errs...)...)
+		return nil, errors.Join(append([]error{msg}, errs...)...)
 	}
 
-	//////////////////
-	// Parsing loop //
+	return expanded, nil
+}
 
+// processArguments loops over all the arguments and fills the given flagset.
+//
+//nolint:revive // Can't easily lower cognitive complexity.
+func (par *Parser) processArguments(arguments []string, flags flagset) error {
 	var dest sink = &par.Positional
-	lastFlag := ""
 
 	for i, arg := range arguments {
-		if strings.HasPrefix(arg, "-") {
-			var known bool
-			dest, known = allFlags[arg]
-			if !known {
-				return fmt.Errorf("unknown flag: %s", arg)
-			}
-
-			// Handle boolean flags.
-			if is[*singletonflag[bool, Bool]](dest) {
-				if err := dest.consume("true"); err != nil {
-					return fmt.Errorf("when consuming %s (%s): %w", arg, dest.kind(), err)
-				}
-
+		if !strings.HasPrefix(arg, "-") { // Value.
+			if dest.full() {
 				dest = &par.Positional
-				continue
 			}
 
-			// Non-boolean flags need an associated value.
-			if i == len(arguments)-1 {
-				return fmt.Errorf("flag %s requires a value but none was provided", arg)
+			if err := dest.consume(arg); err != nil {
+				return fmt.Errorf("when consuming %s (%s): %w", dest.names()[0], dest.kind(), err)
 			}
 
-			lastFlag = arg
 			continue
 		}
 
-		if dest.full() {
-			dest = &par.Positional
-		}
-
-		if err := dest.consume(arg); err != nil {
-			// consume cannot fail on positional arguments, this error can only be triggered by
-			// flags with decoders who can return an error.
-			return fmt.Errorf("when consuming %s (%s): %w", lastFlag, dest.kind(), err)
+		// Flag.
+		dest = flags[arg]
+		switch {
+		case dest == nil:
+			return fmt.Errorf("unknown flag: %s", arg)
+		case is[*singletonflag[bool, Bool]](dest):
+			dest.consume("true") //nolint:errcheck // Cannot fail.
+		case i == len(arguments)-1: // No more arguments to consume.
+			return fmt.Errorf("flag %s requires a value but none was provided", arg)
 		}
 	}
 
-	/////////////////////
-	// Post processing //
+	return nil
+}
 
+// finalizeParse handles the help page and enforce default values.
+func (par *Parser) finalizeParse() error {
 	if par.printHelp {
 		fmt.Print(par.Help())
 		os.Exit(0)

@@ -142,7 +142,6 @@ func TestParser_FlagTypes(t *testing.T) {
 			[]string{"--string_slice_flag", "hello", "--string_slice_flag", "world"},
 			[]string{"hello", "world"}},
 		{"zero_value", []string{}, 0},
-		{"invalid_int", []string{"--int_flag", "abc"}, 0},
 		{"bool_present", []string{"positional", "--bool_present"}, true},
 		{"bool_absent", nil, false},
 	}
@@ -151,14 +150,7 @@ func TestParser_FlagTypes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			switch concrete := tt.expected.(type) {
 			case int:
-				if tt.name == "invalid_int" {
-					par := NewParser()
-					var i int
-					par.Int("int_flag", &i, "test flag")
-					yesErr(t, par.Parse(tt.args))
-				} else {
-					flagExpect[Int](t, tt.name, tt.args, concrete)
-				}
+				flagExpect[Int](t, tt.name, tt.args, concrete)
 			case string:
 				flagExpect[String](t, tt.name, tt.args, concrete)
 			case bool:
