@@ -78,10 +78,11 @@ func (par *Parser) validateAndExpand() (flagset, error) {
 //nolint:revive // Can't easily lower cognitive complexity.
 func (par *Parser) processArguments(arguments []string, flags flagset) error {
 	var dest sink = &par.Positional
+	remaining := -1
 
-	for i, arg := range arguments {
+	for _, arg := range arguments {
 		if !strings.HasPrefix(arg, "-") { // Value.
-			if dest.full() {
+			if remaining == 0 {
 				dest = &par.Positional
 			}
 
@@ -89,6 +90,7 @@ func (par *Parser) processArguments(arguments []string, flags flagset) error {
 				return fmt.Errorf("when consuming %s (%s): %w", dest.names()[0], dest.kind(), err)
 			}
 
+			remaining--
 			continue
 		}
 
@@ -99,9 +101,14 @@ func (par *Parser) processArguments(arguments []string, flags flagset) error {
 			return fmt.Errorf("unknown flag: %s", arg)
 		case is[*singletonflag[bool, Bool]](dest):
 			dest.consume("true") //nolint:errcheck // Cannot fail.
-		case i == len(arguments)-1: // No more arguments to consume.
-			return fmt.Errorf("flag %s requires a value but none was provided", arg)
+			remaining = 0
+		default:
+			remaining = dest.arity()
 		}
+	}
+
+	if remaining > 0 {
+		return fmt.Errorf("flag `%s` requires a value", name2flag(dest.names()[0]))
 	}
 
 	return nil
