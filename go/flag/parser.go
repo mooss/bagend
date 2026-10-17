@@ -73,6 +73,11 @@ func (par *Parser) validateAndExpand() (flagset, error) {
 	return expanded, nil
 }
 
+ // isSliceTerminator reports whether arg ends the current slice consumption.
+func isSliceTerminator(arg string, dest sink, remaining int) bool {
+	return arg == "--" && remaining != 0 && dest.arity() == -1 && !is[*PositionalArguments](dest)
+}
+
 // processArguments loops over all the arguments and fills the given flagset.
 //
 //nolint:revive // Can't easily lower cognitive complexity.
@@ -81,6 +86,12 @@ func (par *Parser) processArguments(arguments []string, flags flagset) error {
 	remaining := -1
 
 	for _, arg := range arguments {
+		if isSliceTerminator(arg, dest, remaining) {
+			dest = &par.Positional
+			remaining = 0
+			continue
+		}
+
 		if !strings.HasPrefix(arg, "-") { // Value.
 			if remaining == 0 {
 				dest = &par.Positional
