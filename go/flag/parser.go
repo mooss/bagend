@@ -21,6 +21,7 @@ type Parser struct {
 	Positional    PositionalArguments
 
 	printHelp       bool
+	customHelpPage  func() string
 	usage           string
 	allowPositional bool
 }
@@ -38,6 +39,11 @@ func NewParser(opts ...ParserOpt) *Parser {
 
 func (par *Parser) AllowsPositionalArguments() bool {
 	return par.allowPositional
+}
+
+// SetHelpPage overrides the help page printed when the help flag is enabled.
+func (par *Parser) SetHelpPage(helpPage func() string) {
+	par.customHelpPage = helpPage
 }
 
 // Parse parses the given arguments.
@@ -148,7 +154,14 @@ func (par *Parser) processArguments(
 // finalizeParse handles the help page and enforce default values.
 func (par *Parser) finalizeParse() error {
 	if par.printHelp {
-		fmt.Print(par.Help())
+		var help string
+		if par.customHelpPage == nil {
+			help = par.Help()
+		} else {
+			help = par.customHelpPage()
+		}
+
+		fmt.Print(help)
 		os.Exit(0)
 	}
 

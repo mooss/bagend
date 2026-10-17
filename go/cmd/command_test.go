@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/mooss/bagend/go/cmd"
+	"github.com/mooss/bagend/go/flag"
 )
 
 func requireContains(t *testing.T, got, want string) {
@@ -32,6 +33,32 @@ func TestCommandDefinition(t *testing.T) {
 	}
 	if name != "Locke" {
 		t.Fatalf("parsed name = %q, want %q", name, "Locke")
+	}
+}
+
+func TestCommandHelp(t *testing.T) {
+	var name string
+	root := cmd.New("tool", "Run a tool", flag.WithHelp("tool", "[args]"))
+	root.Flags().String("name", &name, "Who to greet")
+
+	child := cmd.New("child", "Run a child command")
+	child.Add(cmd.New("nested", "A nested command"))
+	root.Add(child)
+
+	help := root.Help()
+	for _, want := range []string{
+		"Run a tool",
+		"Usage: tool [args]",
+		"Flags:",
+		"--name",
+		"Who to greet",
+		"Commands:",
+		"child  Run a child command",
+	} {
+		requireContains(t, help, want)
+	}
+	if strings.Contains(help, "A nested command") {
+		t.Fatal("Help() included a nested command")
 	}
 }
 

@@ -2,6 +2,9 @@
 package cmd
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/mooss/bagend/go/flag"
 	"github.com/mooss/bagend/go/fun/eager/lie"
 )
@@ -36,12 +39,14 @@ type Command struct {
 // New returns a Command with the given name and documentation line.
 // opts are forwarded to the underlying flag.Parser.
 func New(name, docline string, opts ...flag.ParserOpt) *Command {
-	return &Command{
+	command := &Command{
 		name:    name,
 		docline: docline,
 		parser:  flag.NewParser(opts...),
 		subs:    map[string]*Command{},
 	}
+	command.parser.SetHelpPage(command.Help)
+	return command
 }
 
 func (c *Command) Name() string {
@@ -72,4 +77,38 @@ func (c *Command) Runner(runner func() error) *Command {
 // Subcommands returns the registered subcommands in registration order.
 func (c *Command) Subcommands() []*Command {
 	return lie.Map(func(name string) *Command { return c.subs[name] }, c.suborder)
+}
+
+// Help returns a formatted help page for the command and its direct subcommands.
+func (c *Command) Help() string {
+	help := c.parser.Help()
+	if c.docline != "" {
+		help = c.docline + "\n\n" + help
+	}
+
+	subcommands := c.subcommandsHelp()
+	if subcommands == "" {
+		return help
+	}
+
+	return strings.TrimRight(help, "\n") + "\n\nCommands:\n" + subcommands
+}
+
+func (c *Command) subcommandsHelp() string {
+	subcommands := c.Subcommands()
+	if len(subcommands) == 0 {
+		return ""
+	}
+
+	width := 0
+	for _, subcommand := range subcommands {
+		width = max(width, len(subcommand.name))
+	}
+
+	lines := make([]string, len(subcommands))
+	for i, subcommand := range subcommands {
+		lines[i] = fmt.Sprintf("  %-*s  %s", width, subcommand.name, subcommand.docline)
+	}
+
+	return strings.Join(lines, "\n") + "\n"
 }

@@ -60,6 +60,7 @@ func main() {
 		fmt.Println(":positional", rootf.Positional)
 		return nil
 	})
+
 	noerr(root.Execute(strings.Split("4 -8 15 16 --23 42 --hatch 3", " ")))
 
 	second := cmd.New("second", "")
@@ -68,4 +69,7 @@ func main() {
 
 	noerr(second.Execute([]string{"greet", "--name", "Locke"}))
 	noerr(second.Execute([]string{"sum", "--numbers", "4", "8"}))
+
+	second.Flags().WithHelp("_", "not Penny's boat")
+	noerr(second.Execute([]string{"--help", "sum", "--numbers", "4", "8"}))
 }
