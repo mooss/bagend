@@ -25,22 +25,6 @@ type Parser struct {
 
 type ParserOpt func(*Parser)
 
-// WithPositionalArguments enables positional arguments for the parser.
-func WithPositionalArguments() ParserOpt {
-	return func(cfg *Parser) {
-		cfg.allowPositional = true
-	}
-}
-
-// With help automatically registers a --help|-h flag and exit with an help page when the flag is
-// enabled.
-func WithHelp(arg0, usage string) ParserOpt {
-	return func(cfg *Parser) {
-		cfg.usage = arg0 + " " + usage
-		cfg.Bool("help", &cfg.printHelp, "Print this help page").Alias("h")
-	}
-}
-
 func NewParser(opts ...ParserOpt) *Parser {
 	res := Parser{flags: flagset{}}
 	for _, opt := range opts {
@@ -152,6 +136,38 @@ func (par *Parser) finalizeParse() error {
 	}
 
 	return nil
+}
+
+////////////////////
+// Parser options //
+
+// WithPositionalArguments enables positional arguments for the parser.
+func WithPositionalArguments() ParserOpt {
+	return func(cfg *Parser) {
+		cfg.allowPositional = true
+	}
+}
+
+// WithPositionalArguments enables positional arguments for the parser.
+func (par *Parser) WithPositionalArguments() *Parser {
+	WithPositionalArguments()(par)
+	return par
+}
+
+// WithHelp automatically registers a --help|-h flag and exit with an help page when the flag is
+// enabled.
+func WithHelp(arg0, usage string) ParserOpt {
+	return func(cfg *Parser) {
+		cfg.usage = arg0 + " " + usage
+		cfg.Bool("help", &cfg.printHelp, "Print this help page").Alias("h")
+	}
+}
+
+// WithHelp automatically registers a --help|-h flag and exit with an help page when the flag is
+// enabled.
+func (par *Parser) WithHelp(arg0, usage string) *Parser {
+	WithHelp(arg0, usage)(par)
+	return par
 }
 
 /////////////

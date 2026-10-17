@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/mooss/bagend/go/cmd"
-	"github.com/mooss/bagend/go/flag"
 )
 
 func noerr(err error) {
@@ -38,12 +37,12 @@ func main() {
 		numbers     []int
 	)
 
-	root := cmd.New(os.Args[0], "", flag.WithHelp(os.Args[0], "POSITIONAL [FLAGS]"), flag.WithPositionalArguments())
-	parser := root.Flags()
-	parser.Int("twentythree", &twentythree, "Shephard").Default(23).Alias("23")
-	parser.IntSlice("eight", &eight, "Reyes").Default([]int{8}).Alias("8")
-	parser.String("four", &four, "Locke").Default("4").Alias("4")
-	parser.Bool("hatch", &hatch, "The hatch")
+	root := cmd.New(os.Args[0], "")
+	rootf := root.Flags().WithHelp(os.Args[0], "POSITIONAL [FLAGS]").WithPositionalArguments()
+	rootf.Int("twentythree", &twentythree, "Shephard").Default(23).Alias("23")
+	rootf.IntSlice("eight", &eight, "Reyes").Default([]int{8}).Alias("8")
+	rootf.String("four", &four, "Locke").Default("4").Alias("4")
+	rootf.Bool("hatch", &hatch, "The hatch")
 
 	noerr(root.Parse(strings.Split("4 -8 15 16 --23 42 --hatch 3", " ")))
 
@@ -55,7 +54,7 @@ func main() {
 	fmt.Println(":8", eight)
 	fmt.Println(":4", four)
 	fmt.Println(":hatch", hatch)
-	fmt.Println(":positional", parser.Positional)
+	fmt.Println(":positional", rootf.Positional)
 
 	noerr(second.Parse([]string{"greet", "--name", "Locke"}))
 	fmt.Println("greet:", name)
