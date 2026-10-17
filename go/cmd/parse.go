@@ -13,7 +13,8 @@ import (
 // otherwise it parses the arguments with its own flag Parser.
 func (c *Command) Parse(arguments []string) error {
 	if len(c.subs) > 0 && c.parser.AllowsPositionalArguments() {
-		return fmt.Errorf("command %q cannot have both subcommands and positional arguments", c.name)
+		msg := "command %q cannot have both subcommands and positional arguments"
+		return fmt.Errorf(msg, c.name)
 	}
 
 	if sub, rest := c.findSub(arguments); sub != nil {

@@ -10,5 +10,5 @@ func Wrapf(err error, msg string, rest ...any) error {
 		return nil
 	}
 
-	return fmt.Errorf(msg + ": %w", rest, err)
+	return fmt.Errorf(msg+": %w", rest, err)
 }

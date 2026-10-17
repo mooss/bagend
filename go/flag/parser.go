@@ -74,10 +74,11 @@ func (par *Parser) validateAndExpand() (flagset, error) {
 		return nil, errors.Join(append([]error{msg}, par.flagDefErrors...)...)
 	}
 
-	expanded, errs := par.flags.expand()
-	if errs != nil {
-		msg := fmt.Errorf("%d flag errors after aliases expansion, refusing to parse", len(errs))
-		return nil, errors.Join(append([]error{msg}, errs...)...)
+	expanded, problems := par.flags.expand()
+	if problems != nil {
+		msg := "%d flag errors after aliases expansion, refusing to parse"
+		err := fmt.Errorf(msg, len(problems))
+		return nil, errors.Join(append([]error{err}, problems...)...)
 	}
 
 	return expanded, nil
@@ -147,7 +148,7 @@ func (par *Parser) processArguments(
 // finalizeParse handles the help page and enforce default values.
 func (par *Parser) finalizeParse() error {
 	if par.printHelp {
-		fmt.Print(par.Help())
+		fmt.Print(par.Help()) //nolint:revive
 		os.Exit(0)
 	}
 
@@ -214,7 +215,7 @@ func (fs flagset) add(flagname string, value flag) error {
 // expand returns a new flagset containing all the original flags and the aliases, as well as all
 // errors that occurred during the process.
 func (fs flagset) expand() (flagset, []error) {
-	var errs []error
+	var problems []error
 	res := flagset{}
 
 	for canonical, flg := range fs {
@@ -222,12 +223,12 @@ func (fs flagset) expand() (flagset, []error) {
 
 		for _, alias := range flg.names()[1:] {
 			if err := res.add(name2flag(alias), flg); err != nil {
-				errs = append(errs, err)
+				problems = append(problems, err)
 			}
 		}
 	}
 
-	return res, errs
+	return res, problems
 }
 
 ///////////////

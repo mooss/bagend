@@ -68,31 +68,27 @@ func TestDispatchParsesSelectedCommand(t *testing.T) {
 	if err := root.Parse([]string{"child", "--name", "Locke"}); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
 	}
-	if childName != "Locke" {
-		t.Fatalf("child name = %q, want %q", childName, "Locke")
-	}
-	if parentName != "" {
-		t.Fatalf("parent name = %q, want it to remain empty", parentName)
-	}
+	assertDispatchNames(t, parentName, childName, "", "Locke")
 
 	if err := root.Parse([]string{"--name", "Sawyer"}); err != nil {
 		t.Fatalf("Parse() returned an error for the root command: %v", err)
 	}
-	if parentName != "Sawyer" {
-		t.Fatalf("parent name = %q, want %q", parentName, "Sawyer")
-	}
-	if childName != "Locke" {
-		t.Fatalf("child name = %q, want it to remain %q", childName, "Locke")
-	}
+	assertDispatchNames(t, parentName, childName, "Sawyer", "Locke")
 
 	if err := root.Parse([]string{"--name", "Jack", "child", "--name", "Kate"}); err != nil {
 		t.Fatalf("Parse() returned an error for both commands: %v", err)
 	}
-	if parentName != "Jack" {
-		t.Fatalf("parent name = %q, want %q", parentName, "Jack")
+	assertDispatchNames(t, parentName, childName, "Jack", "Kate")
+}
+
+func assertDispatchNames(t *testing.T, parentName, childName, wantParent, wantChild string) {
+	t.Helper()
+
+	if parentName != wantParent {
+		t.Errorf("parent name = %q, want %q", parentName, wantParent)
 	}
-	if childName != "Kate" {
-		t.Fatalf("child name = %q, want %q", childName, "Kate")
+	if childName != wantChild {
+		t.Errorf("child name = %q, want %q", childName, wantChild)
 	}
 }
 

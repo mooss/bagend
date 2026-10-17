@@ -44,5 +44,5 @@ func (c *Command) Flags() *flag.Parser {
 
 // Subcommands returns the registered subcommands in registration order.
 func (c *Command) Subcommands() []*Command {
-	return lie.Map(func (name string) *Command { return c.subs[name]}, c.order)
+	return lie.Map(func(name string) *Command { return c.subs[name] }, c.order)
 }

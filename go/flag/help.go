@@ -9,19 +9,6 @@ import (
 
 // Help returns a formatted help string showing all registered flags and their documentation.
 func (par *Parser) Help() string {
-	var builder strings.Builder
-
-	///////////
-	// Usage //
-
-	builder.WriteString("Usage: ")
-	builder.WriteString(par.usage)
-
-	///////////
-	// Flags //
-
-	builder.WriteString("\n\nFlags:\n")
-
 	align := 0
 	mkdecl := func(flg flag) string {
 		res := strings.Join(lie.Map(name2flag, flg.names()), ", ")
@@ -30,11 +17,11 @@ func (par *Parser) Help() string {
 	}
 	declarations := lie.Map(mkdecl, par.canonical)
 
-	// Format with proper alignment.
 	format := fmt.Sprintf("  %%-%ds  %%s\n", align)
+	lines := make([]string, len(declarations))
 	for i, decl := range declarations {
-		builder.WriteString(fmt.Sprintf(format, decl, par.canonical[i].docline()))
+		lines[i] = fmt.Sprintf(format, decl, par.canonical[i].docline())
 	}
 
-	return builder.String()
+	return "Usage: " + par.usage + "\n\nFlags:\n" + strings.Join(lines, "")
 }
