@@ -192,16 +192,38 @@ func TestParser_PositionalArguments(t *testing.T) {
 	}
 }
 
+func TestParser_SliceTerminator(t *testing.T) {
+	par := NewParser(WithPositionalArguments())
+	var values []string
+	par.StringSlice("values", &values, "test values")
+
+	noErr(t, par.Parse([]string{"--values", "first", "--", "positional"}))
+	eq(t, []string{"first"}, values)
+	eq(t, []string{"positional"}, []string(par.Positional))
+}
+
 func TestParser_PositionalArgumentsPolicy(t *testing.T) {
 	t.Run("refused by default", func(t *testing.T) {
 		par := NewParser()
 		yesErr(t, par.Parse([]string{"value"}))
 	})
 
-	t.Run("allowed explicitly", func(t *testing.T) {
+	t.Run("allowed after a flag", func(t *testing.T) {
 		par := NewParser(WithPositionalArguments())
-		noErr(t, par.Parse([]string{"value"}))
-		eq(t, []string{"value"}, []string(par.Positional))
+		var value string
+		par.String("flag", &value, "test flag")
+
+		noErr(t, par.Parse([]string{"--flag", "flag value", "positional"}))
+		eq(t, "flag value", value)
+		eq(t, []string{"positional"}, []string(par.Positional))
+	})
+
+	t.Run("refused after a flag", func(t *testing.T) {
+		par := NewParser()
+		var value string
+		par.String("flag", &value, "test flag")
+
+		yesErr(t, par.Parse([]string{"--flag", "flag value", "positional"}))
 	})
 }
 
