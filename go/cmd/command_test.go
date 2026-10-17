@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/mooss/bagend/go/cmd"
-	"github.com/mooss/bagend/go/flag"
 )
 
 func requireContains(t *testing.T, got, want string) {
@@ -36,9 +35,60 @@ func TestCommandDefinition(t *testing.T) {
 	}
 }
 
+func TestCommandUsage(t *testing.T) {
+	t.Run("sets usage and enables help", testCommandUsageSetsUsageAndEnablesHelp)
+	t.Run("empty usage", testCommandUsageEmpty)
+	t.Run("repeated usage() replace without duplicate help flags", testCommandUsageRepeatedCalls)
+	t.Run("existing help flag is not registered twice", testCommandUsageExistingHelpFlag)
+}
+
+func testCommandUsageSetsUsageAndEnablesHelp(t *testing.T) {
+	command := cmd.New("tool", "")
+	if got := command.Usage("[args]"); got != command {
+		t.Fatal("Usage() did not return the command for fluent configuration")
+	}
+
+	help := command.Help()
+	requireContains(t, help, "Usage: tool [args]")
+	requireContains(t, help, "--help")
+
+	if err := command.Parse(nil); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+}
+
+func testCommandUsageEmpty(t *testing.T) {
+	command := cmd.New("tool", "").Usage("")
+
+	help := command.Help()
+	requireContains(t, help, "Usage: tool\n\nFlags:")
+	requireContains(t, help, "--help")
+	if strings.Contains(help, "Usage: tool \n") {
+		t.Fatalf("Help() included a trailing usage space: %q", help)
+	}
+
+	if err := command.Parse(nil); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+}
+
+func testCommandUsageRepeatedCalls(t *testing.T) {
+	command := cmd.New("tool", "").Usage("[first]").Usage("[second]")
+
+	help := command.Help()
+	requireContains(t, help, "Usage: tool [second]")
+	if strings.Contains(help, "[first]") {
+		t.Fatalf("Help() retained the previous usage string: %q", help)
+	}
+
+	if err := command.Parse(nil); err != nil {
+		t.Fatalf("Parse() returned an error after repeated Usage() calls: %v", err)
+	}
+}
+
 func TestCommandHelp(t *testing.T) {
 	var name string
-	root := cmd.New("tool", "Run a tool", flag.WithHelp("tool", "[args]"))
+	root := cmd.New("tool", "Run a tool").Usage("[args]")
 	root.Flags().String("name", &name, "Who to greet")
 
 	child := cmd.New("child", "Run a child command")

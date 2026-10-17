@@ -20,6 +20,9 @@ type Command struct {
 	// docline is the command's one-line documentation.
 	docline string
 
+	// usage contains the command's usage arguments.
+	usage string
+
 	// parser stores the flags registered for the command.
 	parser *flag.Parser
 
@@ -57,6 +60,13 @@ func (c *Command) Docline() string {
 	return c.docline
 }
 
+// Usage sets the command's usage arguments and returns it for fluent configuration.
+func (c *Command) Usage(usage string) *Command {
+	c.usage = usage
+	c.parser.EnableHelp()
+	return c
+}
+
 // Alias adds aliases for this command and returns it for fluent configuration.
 func (c *Command) Alias(aliases ...string) *Command {
 	c.aliases = append(c.aliases, aliases...)
@@ -81,7 +91,11 @@ func (c *Command) Subcommands() []*Command {
 
 // Help returns a formatted help page for the command and its direct subcommands.
 func (c *Command) Help() string {
-	help := c.parser.Help()
+	usage := c.name
+	if c.usage != "" {
+		usage += " " + c.usage
+	}
+	help := "Usage: " + usage + "\n\nFlags:\n" + c.parser.Help()
 	if c.docline != "" {
 		help = c.docline + "\n\n" + help
 	}

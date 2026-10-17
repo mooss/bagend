@@ -16,10 +16,7 @@ func TestParser_Help(t *testing.T) {
 				par.Int("intflag", new(int), "integer flag")
 				par.String("strflag", new(string), "string flag")
 			},
-			`Usage: 
-
-Flags:
-  --intflag  integer flag
+			`  --intflag  integer flag
   --strflag  string flag
 `,
 		},
@@ -28,32 +25,23 @@ Flags:
 			func(par *Parser) {
 				par.Bool("boolflag", new(bool), "boolean flag").Alias("b", "bool")
 			},
-			`Usage: 
-
-Flags:
-  --boolflag, -b, --bool  boolean flag
+			`  --boolflag, -b, --bool  boolean flag
 `,
 		},
 		{
 			"with usage",
 			func(par *Parser) {
-				WithHelp("testprog", "[options]")(par)
+				EnableHelp()(par)
 				par.Int("intflag", new(int), "integer flag")
 			},
-			`Usage: testprog [options]
-
-Flags:
-  --help, -h  Print this help page
+			`  --help, -h  Print this help page
   --intflag   integer flag
 `,
 		},
 		{
 			"empty parser",
 			func(*Parser) {},
-			`Usage: 
-
-Flags:
-`,
+			``,
 		},
 	}
 

@@ -22,7 +22,6 @@ type Parser struct {
 
 	printHelp       bool
 	customHelpPage  func() string
-	usage           string
 	allowPositional bool
 }
 
@@ -188,19 +187,21 @@ func (par *Parser) WithPositionalArguments() *Parser {
 	return par
 }
 
-// WithHelp automatically registers a --help|-h flag and exit with an help page when the flag is
-// enabled.
-func WithHelp(arg0, usage string) ParserOpt {
+// EnableHelp registers a --help|-h flag that prints the help page when enabled.
+// Does nothing when a help flag has already been defined.
+func EnableHelp() ParserOpt {
 	return func(cfg *Parser) {
-		cfg.usage = arg0 + " " + usage
+		if _, exists := cfg.flags[name2flag("help")]; exists {
+			return
+		}
 		cfg.Bool("help", &cfg.printHelp, "Print this help page").Alias("h")
 	}
 }
 
-// WithHelp automatically registers a --help|-h flag and exit with an help page when the flag is
-// enabled.
-func (par *Parser) WithHelp(arg0, usage string) *Parser {
-	WithHelp(arg0, usage)(par)
+// EnableHelp registers a --help|-h flag that prints the help page when enabled.
+// Does nothing when a help flag has already been defined.
+func (par *Parser) EnableHelp() *Parser {
+	EnableHelp()(par)
 	return par
 }
 
