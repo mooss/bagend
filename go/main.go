@@ -45,8 +45,8 @@ func main() {
 		numbers     []int
 	)
 
-	root := cmd.New(os.Args[0], "")
-	rootf := root.Flags().WithHelp(os.Args[0], "POSITIONAL [FLAGS]").WithPositionalArguments()
+	root := cmd.New(os.Args[0], "").Usage("POSITIONAL [FLAGS]")
+	rootf := root.Flags().WithPositionalArguments()
 	rootf.Int("twentythree", &twentythree, "Shephard").Default(23).Alias("23")
 	rootf.IntSlice("eight", &eight, "Reyes").Default([]int{8}).Alias("8")
 	rootf.String("four", &four, "Locke").Default("4").Alias("4")
@@ -70,6 +70,7 @@ func main() {
 	noerr(second.Execute([]string{"greet", "--name", "Locke"}))
 	noerr(second.Execute([]string{"sum", "--numbers", "4", "8"}))
 
-	second.Flags().WithHelp("_", "not Penny's boat")
+	second.Usage("not Penny's boat")
+	second.Flags().EnableHelp()
 	noerr(second.Execute([]string{"--help", "sum", "--numbers", "4", "8"}))
 }

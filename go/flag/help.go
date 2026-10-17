@@ -23,5 +23,5 @@ func (par *Parser) Help() string {
 		lines[i] = fmt.Sprintf(format, decl, par.canonical[i].docline())
 	}
 
-	return "Usage: " + par.usage + "\n\nFlags:\n" + strings.Join(lines, "")
+	return strings.Join(lines, "")
 }
