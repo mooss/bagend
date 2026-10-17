@@ -18,13 +18,13 @@ func noerr(err error) {
 
 func newGreetCommand(dest *string) *cmd.Command {
 	greet := cmd.New("greet", "Print a greeting")
-	greet.Parser().String("name", dest, "Who to greet").Default("world")
+	greet.Flags().String("name", dest, "Who to greet").Default("world")
 	return greet
 }
 
 func newSumCommand(dest *[]int) *cmd.Command {
 	sum := cmd.New("sum", "Sum numbers")
-	sum.Parser().IntSlice("numbers", dest, "Numbers to sum")
+	sum.Flags().IntSlice("numbers", dest, "Numbers to sum")
 	return sum
 }
 
@@ -38,17 +38,18 @@ func main() {
 		numbers     []int
 	)
 
-	root := cmd.New(os.Args[0], "", flag.WithHelp(os.Args[0], "POSITIONAL [FLAGS]"))
-	parser := root.Parser()
+	root := cmd.New(os.Args[0], "", flag.WithHelp(os.Args[0], "POSITIONAL [FLAGS]"), flag.WithPositionalArguments())
+	parser := root.Flags()
 	parser.Int("twentythree", &twentythree, "Shephard").Default(23).Alias("23")
 	parser.IntSlice("eight", &eight, "Reyes").Default([]int{8}).Alias("8")
 	parser.String("four", &four, "Locke").Default("4").Alias("4")
 	parser.Bool("hatch", &hatch, "The hatch")
 
-	root.Add(newGreetCommand(&name))
-	root.Add(newSumCommand(&numbers))
-
 	noerr(root.Parse(strings.Split("4 -8 15 16 --23 42 --hatch 3", " ")))
+
+	second := cmd.New("second", "")
+	second.Add(newGreetCommand(&name))
+	second.Add(newSumCommand(&numbers))
 
 	fmt.Println(":23", twentythree)
 	fmt.Println(":8", eight)
@@ -56,11 +57,9 @@ func main() {
 	fmt.Println(":hatch", hatch)
 	fmt.Println(":positional", parser.Positional)
 
-	noerr(root.Parse([]string{"greet", "--name", "Locke"}))
+	noerr(second.Parse([]string{"greet", "--name", "Locke"}))
 	fmt.Println("greet:", name)
 
-	noerr(root.Parse([]string{"sum", "--numbers", "4", "8"}))
+	noerr(second.Parse([]string{"sum", "--numbers", "4", "8"}))
 	fmt.Println("sum:", numbers)
-
-	noerr(root.Parse([]string{"-h"}))
 }

@@ -13,3 +13,6 @@ lint:
 	  --max-same-issues 0\
 	  --allow-parallel-runners\
 	  --sort-results
+
+run:
+	go run ./go

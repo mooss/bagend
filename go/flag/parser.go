@@ -18,15 +18,23 @@ type Parser struct {
 	flagDefErrors []error
 	Positional    PositionalArguments
 
-	printHelp bool
-	usage     string
+	printHelp       bool
+	usage           string
+	allowPositional bool
 }
 
 type ParserOpt func(*Parser)
 
+// WithPositionalArguments enables positional arguments for the parser.
+func WithPositionalArguments() ParserOpt {
+	return func(cfg *Parser) {
+		cfg.allowPositional = true
+	}
+}
+
 // With help automatically registers a --help|-h flag and exit with an help page when the flag is
 // enabled.
-func WithHelp(arg0, usage string) func(*Parser) {
+func WithHelp(arg0, usage string) ParserOpt {
 	return func(cfg *Parser) {
 		cfg.usage = arg0 + " " + usage
 		cfg.Bool("help", &cfg.printHelp, "Print this help page").Alias("h")
@@ -40,6 +48,10 @@ func NewParser(opts ...ParserOpt) *Parser {
 	}
 
 	return &res
+}
+
+func (par *Parser) AllowsPositionalArguments() bool {
+	return par.allowPositional
 }
 
 // Parse parses the given arguments.
@@ -73,7 +85,7 @@ func (par *Parser) validateAndExpand() (flagset, error) {
 	return expanded, nil
 }
 
- // isSliceTerminator reports whether arg ends the current slice consumption.
+// isSliceTerminator reports whether arg ends the current slice consumption.
 func isSliceTerminator(arg string, dest sink, remaining int) bool {
 	return arg == "--" && remaining != 0 && dest.arity() == -1 && !is[*PositionalArguments](dest)
 }
@@ -95,6 +107,9 @@ func (par *Parser) processArguments(arguments []string, flags flagset) error {
 		if !strings.HasPrefix(arg, "-") { // Value.
 			if remaining == 0 {
 				dest = &par.Positional
+			}
+			if is[*PositionalArguments](dest) && !par.allowPositional {
+				return fmt.Errorf("positional arguments are not allowed (got %q)", arg)
 			}
 
 			if err := dest.consume(arg); err != nil {

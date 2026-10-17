@@ -2,16 +2,25 @@
 
 package cmd
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/mooss/bagend/go/errs"
+)
 
 // Parse dispatches to the matching subcommand when the first argument names one,
 // otherwise it parses the arguments with its own flag Parser.
 func (c *Command) Parse(arguments []string) error {
+	if len(c.subs) > 0 && c.parser.AllowsPositionalArguments() {
+		return fmt.Errorf("command %q cannot have both subcommands and positional arguments", c.name)
+	}
+
 	if sub, rest := c.findSub(arguments); sub != nil {
 		return sub.Parse(rest)
 	}
 
-	return c.parser.Parse(arguments)
+	return errs.Wrapf(c.parser.Parse(arguments), "command %q", c.name)
 }
 
 // findSub returns the subcommand named by the first argument and the remaining arguments.

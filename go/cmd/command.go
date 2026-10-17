@@ -37,8 +37,8 @@ func (c *Command) Docline() string {
 	return c.docline
 }
 
-// Parser returns the underlying flag Parser used to register flags.
-func (c *Command) Parser() *flag.Parser {
+// Flags returns the underlying flag parser used to register flags.
+func (c *Command) Flags() *flag.Parser {
 	return c.parser
 }
 

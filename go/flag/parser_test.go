@@ -68,7 +68,7 @@ func TestParser_BasicParsing(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var i int
-			par := NewParser()
+			par := NewParser(WithPositionalArguments())
 
 			// We don't care about where the flags go.
 			par.Int("flag", &i, "test flag")
@@ -142,7 +142,7 @@ func TestParser_FlagTypes(t *testing.T) {
 			[]string{"--string_slice_flag", "hello", "--string_slice_flag", "world"},
 			[]string{"hello", "world"}},
 		{"zero_value", []string{}, 0},
-		{"bool_present", []string{"positional", "--bool_present"}, true},
+		{"bool_present", []string{"--bool_present"}, true},
 		{"bool_absent", nil, false},
 	}
 
@@ -182,7 +182,7 @@ func TestParser_PositionalArguments(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			par := NewParser()
+			par := NewParser(WithPositionalArguments())
 			var i int
 			par.Int("flag", &i, "test flag")
 			par.Int("flag2", &i, "test flag2")
@@ -190,6 +190,19 @@ func TestParser_PositionalArguments(t *testing.T) {
 			eq(t, tt.expected, []string(par.Positional))
 		})
 	}
+}
+
+func TestParser_PositionalArgumentsPolicy(t *testing.T) {
+	t.Run("refused by default", func(t *testing.T) {
+		par := NewParser()
+		yesErr(t, par.Parse([]string{"value"}))
+	})
+
+	t.Run("allowed explicitly", func(t *testing.T) {
+		par := NewParser(WithPositionalArguments())
+		noErr(t, par.Parse([]string{"value"}))
+		eq(t, []string{"value"}, []string(par.Positional))
+	})
 }
 
 func TestParser_DefaultValues(t *testing.T) {
