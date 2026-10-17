@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/mooss/bagend/go/errs"
@@ -72,8 +73,18 @@ func (c *Command) findSub(arguments []string) (*Command, []string) {
 }
 
 func (c *Command) lookup(name string) (*Command, bool) {
-	sub, ok := c.subs[name]
-	return sub, ok
+	if sub, ok := c.subs[name]; ok {
+		return sub, true
+	}
+
+	for _, cmd := range c.suborder {
+		sub := c.subs[cmd]
+		if slices.Contains(sub.aliases, name) {
+			return sub, true
+		}
+	}
+
+	return nil, false
 }
 
 func isFlag(arg string) bool {

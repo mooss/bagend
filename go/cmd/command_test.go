@@ -41,9 +41,18 @@ func TestSubcommandRegistrationOrderAndReplacement(t *testing.T) {
 	second := cmd.New("second", "")
 	replacement := cmd.New("first", "replacement")
 
+	first.Alias("old-first")
+	replacement.Alias("new-first")
 	root.Add(first)
 	root.Add(second)
 	root.Add(replacement)
+
+	if err := root.Parse([]string{"old-first"}); err == nil {
+		t.Fatal("Parse() succeeded with a stale alias after command replacement")
+	}
+	if err := root.Parse([]string{"new-first"}); err != nil {
+		t.Fatalf("Parse() returned an error for the replacement alias: %v", err)
+	}
 
 	got := root.Subcommands()
 	if len(got) != 2 {
@@ -54,6 +63,37 @@ func TestSubcommandRegistrationOrderAndReplacement(t *testing.T) {
 	}
 	if got[1] != second {
 		t.Fatalf("second registered command = %p, want %p", got[1], second)
+	}
+}
+
+func TestSubcommandAliases(t *testing.T) {
+	var value string
+	var childRan bool
+
+	root := cmd.New("root", "")
+	child := cmd.New("child", "")
+	child.Flags().String("value", &value, "A value")
+	child.Runner(func() error {
+		childRan = true
+		return nil
+	})
+	child.Alias("c")
+	root.Add(child)
+
+	if got := root.Subcommands(); len(got) != 1 || got[0] != child {
+		t.Fatalf("Subcommands() = %v, want only the canonical child", got)
+	}
+	if err := root.Parse([]string{"c", "--value", "alias"}); err != nil {
+		t.Fatalf("Parse() with alias returned an error: %v", err)
+	}
+	if value != "alias" {
+		t.Fatalf("parsed value = %q, want %q", value, "alias")
+	}
+	if err := root.Execute([]string{"c"}); err != nil {
+		t.Fatalf("Execute() with alias returned an error: %v", err)
+	}
+	if !childRan {
+		t.Fatal("alias did not select the child command runner")
 	}
 }
 
