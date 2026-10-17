@@ -14,6 +14,7 @@ type Command struct {
 	name    string
 	docline string
 	parser  *flag.Parser
+	runner  func() error
 	subs    map[string]*Command
 	order   []string
 }
@@ -40,6 +41,12 @@ func (c *Command) Docline() string {
 // Flags returns the underlying flag parser used to register flags.
 func (c *Command) Flags() *flag.Parser {
 	return c.parser
+}
+
+// Runner sets the function called to run the command.
+func (c *Command) Runner(runner func() error) *Command {
+	c.runner = runner
+	return c
 }
 
 // Subcommands returns the registered subcommands in registration order.

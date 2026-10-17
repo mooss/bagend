@@ -12,13 +12,30 @@ import (
 // Parse dispatches to the matching subcommand when the first argument names one,
 // otherwise it parses the arguments with its own flag Parser.
 func (c *Command) Parse(arguments []string) error {
+	_, err := c.parse(arguments)
+	return err
+}
+
+// Execute parses the arguments and runs the selected command.
+func (c *Command) Execute(arguments []string) error {
+	selected, err := c.parse(arguments)
+	if err != nil {
+		return err
+	}
+	if selected.runner == nil {
+		return fmt.Errorf("command %q has no runner", selected.name)
+	}
+	return selected.runner()
+}
+
+func (c *Command) parse(arguments []string) (*Command, error) {
 	if len(c.subs) > 0 && c.parser.AllowsPositionalArguments() {
 		msg := "command %q cannot have both subcommands and positional arguments"
-		return fmt.Errorf(msg, c.name)
+		return nil, fmt.Errorf(msg, c.name)
 	}
 
 	if sub, rest := c.findSub(arguments); sub != nil {
-		return sub.Parse(rest)
+		return sub.parse(rest)
 	}
 
 	rest, stopped, err := c.parser.ParseUntil(arguments, func(arg string) bool {
@@ -26,14 +43,14 @@ func (c *Command) Parse(arguments []string) error {
 		return ok
 	})
 	if err != nil {
-		return errs.Wrapf(err, "command %q", c.name)
+		return nil, errs.Wrapf(err, "command %q", c.name)
 	}
 	if stopped {
 		sub, _ := c.lookup(rest[0])
-		return sub.Parse(rest[1:])
+		return sub.parse(rest[1:])
 	}
 
-	return nil
+	return c, nil
 }
 
 // findSub returns the subcommand named by the first argument and the remaining arguments.

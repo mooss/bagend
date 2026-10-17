@@ -1,6 +1,7 @@
 package cmd_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -239,5 +240,88 @@ func TestSubcommandsConflictWithPositionalArguments(t *testing.T) {
 			t.Fatalf("Parse(%v) succeeded, want an error", arguments)
 		}
 		requireContains(t, err.Error(), "cannot have both subcommands and positional arguments")
+	}
+}
+
+func TestExecuteDispatchesNestedCommandAndParsesParentFlags(t *testing.T) {
+	var name string
+	var leafRan bool
+
+	root := cmd.New("root", "")
+	root.Flags().String("name", &name, "Name")
+
+	middle := cmd.New("middle", "")
+	leaf := cmd.New("leaf", "")
+	leaf.Runner(func() error {
+		leafRan = true
+		return nil
+	})
+	middle.Add(leaf)
+	root.Add(middle)
+
+	if err := root.Execute([]string{"--name", "Locke", "middle", "leaf"}); err != nil {
+		t.Fatalf("Execute() returned an error: %v", err)
+	}
+	if name != "Locke" {
+		t.Errorf("parsed name = %q, want %q", name, "Locke")
+	}
+	if !leafRan {
+		t.Fatal("nested command runner was not called")
+	}
+}
+
+func TestExecuteParseErrorDoesNotRunCommand(t *testing.T) {
+	var childRan bool
+	root := cmd.New("root", "")
+	child := cmd.New("child", "")
+	child.Runner(func() error {
+		childRan = true
+		return nil
+	})
+	root.Add(child)
+
+	if err := root.Execute([]string{"unknown", "child"}); err == nil {
+		t.Fatal("Execute() succeeded for invalid arguments, want an error")
+	}
+	if childRan {
+		t.Fatal("command runner was called after a parse error")
+	}
+}
+
+func TestExecuteReturnsRunnerError(t *testing.T) {
+	want := errors.New("runner failed")
+	root := cmd.New("root", "")
+	root.Runner(func() error {
+		return want
+	})
+
+	if err := root.Execute(nil); !errors.Is(err, want) {
+		t.Fatalf("Execute() error = %v, want %v", err, want)
+	}
+}
+
+func TestExecuteRequiresRunner(t *testing.T) {
+	root := cmd.New("root", "")
+
+	err := root.Execute(nil)
+	if err == nil {
+		t.Fatal("Execute() succeeded without a runner, want an error")
+	}
+	requireContains(t, err.Error(), `command "root" has no runner`)
+}
+
+func TestParseDoesNotRunCommand(t *testing.T) {
+	var runnerCalled bool
+	root := cmd.New("root", "")
+	root.Runner(func() error {
+		runnerCalled = true
+		return nil
+	})
+
+	if err := root.Parse(nil); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if runnerCalled {
+		t.Fatal("Parse() called the command runner")
 	}
 }
