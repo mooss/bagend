@@ -3,6 +3,15 @@ linters:
   enable:
     - dupword
     - revive
+    - gosec
+    - nolintlint
+    - errorlint
+    - bodyclose
+    - noctx
+    - exhaustive
+    - nilerr
+    - gocritic
+    - misspell
   settings:
     revive:
       enable-all-rules: true

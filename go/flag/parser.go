@@ -148,7 +148,7 @@ func (par *Parser) processArguments(
 // finalizeParse handles the help page and enforce default values.
 func (par *Parser) finalizeParse() error {
 	if par.printHelp {
-		fmt.Print(par.Help()) //nolint:revive
+		fmt.Print(par.Help())
 		os.Exit(0)
 	}
 

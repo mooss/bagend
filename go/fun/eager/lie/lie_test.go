@@ -42,7 +42,7 @@ func TestMap(t *testing.T) {
 
 	testMap(t, "digit to string",
 		[]int{1, 2, 3},
-		func(x int) string { return string(rune(x + '0')) },
+		func(x int) string { return string(rune(x + '0')) }, //nolint:gosec
 		[]string{"1", "2", "3"},
 	)
 }
