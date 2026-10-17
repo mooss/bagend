@@ -63,7 +63,15 @@ func main() {
 
 	noerr(root.Execute(strings.Split("4 -8 15 16 --23 42 --hatch 3", " ")))
 
-	second := cmd.New("second", "")
+	second := cmd.New("second", "").Description(`A command to showcase subcommands.
+
+some
+
+empty
+
+...
+
+space.`)
 	second.Add(newGreetCommand(&name))
 	second.Add(newSumCommand(&numbers))
 

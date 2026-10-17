@@ -20,6 +20,9 @@ type Command struct {
 	// docline is the command's one-line documentation.
 	docline string
 
+	// description is the command's longer description.
+	description string
+
 	// usage contains the command's usage arguments.
 	usage string
 
@@ -60,6 +63,12 @@ func (c *Command) Docline() string {
 	return c.docline
 }
 
+// Description sets the command's longer description and returns it for fluent configuration.
+func (c *Command) Description(description string) *Command {
+	c.description = description
+	return c
+}
+
 // Usage sets the command's usage arguments and returns it for fluent configuration.
 func (c *Command) Usage(usage string) *Command {
 	c.usage = usage
@@ -95,7 +104,11 @@ func (c *Command) Help() string {
 	if c.usage != "" {
 		usage += " " + c.usage
 	}
-	help := "Usage: " + usage + "\n\nFlags:\n" + c.parser.Help()
+	help := "Usage: " + usage + "\n\n"
+	if c.description != "" {
+		help += c.description + "\n\n"
+	}
+	help += "Flags:\n" + c.parser.Help()
 	if c.docline != "" {
 		help = c.docline + "\n\n" + help
 	}

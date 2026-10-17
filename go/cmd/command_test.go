@@ -86,6 +86,43 @@ func testCommandUsageRepeatedCalls(t *testing.T) {
 	}
 }
 
+func testCommandUsageExistingHelpFlag(t *testing.T) {
+	var helpFlag bool
+	command := cmd.New("tool", "")
+	command.Flags().Bool("help", &helpFlag, "Custom help flag")
+	command.Usage("[args]")
+
+	if err := command.Parse(nil); err != nil {
+		t.Fatalf("Parse() returned an error with an existing help flag: %v", err)
+	}
+}
+
+func TestCommandDescription(t *testing.T) {
+	command := cmd.New("tool", "Run a tool").
+		Usage("[args]").
+		Description("A longer description.")
+
+	if got := command.Description("A longer description."); got != command {
+		t.Fatal("Description() did not return the command for fluent configuration")
+	}
+
+	help := command.Help()
+	usageIndex := strings.Index(help, "Usage: tool [args]")
+	descriptionIndex := strings.Index(help, "A longer description.")
+	flagsIndex := strings.Index(help, "Flags:")
+	if usageIndex == -1 || descriptionIndex == -1 || flagsIndex == -1 {
+		t.Fatalf("Help() is missing usage, description, or flags: %q", help)
+	}
+	if usageIndex >= descriptionIndex || descriptionIndex >= flagsIndex {
+		t.Fatalf("Help() should place the description between usage and flags: %q", help)
+	}
+
+	got := cmd.New("plain", "").Help()
+	if strings.Contains(got, "Flags:") && strings.Contains(got, "\\n\\n\\nFlags:") {
+		t.Fatalf("Help() included an extra blank line without a description: %q", got)
+	}
+}
+
 func TestCommandHelp(t *testing.T) {
 	var name string
 	root := cmd.New("tool", "Run a tool").Usage("[args]")
