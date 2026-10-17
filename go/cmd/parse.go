@@ -20,7 +20,19 @@ func (c *Command) Parse(arguments []string) error {
 		return sub.Parse(rest)
 	}
 
-	return errs.Wrapf(c.parser.Parse(arguments), "command %q", c.name)
+	rest, stopped, err := c.parser.ParseUntil(arguments, func(arg string) bool {
+		_, ok := c.lookup(arg)
+		return ok
+	})
+	if err != nil {
+		return errs.Wrapf(err, "command %q", c.name)
+	}
+	if stopped {
+		sub, _ := c.lookup(rest[0])
+		return sub.Parse(rest[1:])
+	}
+
+	return nil
 }
 
 // findSub returns the subcommand named by the first argument and the remaining arguments.

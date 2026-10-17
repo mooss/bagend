@@ -96,6 +96,81 @@ func TestDispatchParsesSelectedCommand(t *testing.T) {
 	}
 }
 
+func TestSubcommandNameAsFlagValue(t *testing.T) {
+	var rootName, childName string
+	root := cmd.New("root", "")
+	root.Flags().String("name", &rootName, "Root name")
+
+	child := cmd.New("child", "")
+	child.Flags().String("name", &childName, "Child name")
+	root.Add(child)
+
+	if err := root.Parse([]string{"--name", "child", "child", "--name", "Locke"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if rootName != "child" {
+		t.Fatalf("root name = %q, want %q", rootName, "child")
+	}
+	if childName != "Locke" {
+		t.Fatalf("child name = %q, want %q", childName, "Locke")
+	}
+}
+
+func TestSubcommandNameAsSliceValue(t *testing.T) {
+	var values []string
+	root := cmd.New("root", "")
+	root.Flags().StringSlice("values", &values, "Values")
+
+	child := cmd.New("child", "")
+	root.Add(child)
+
+	if err := root.Parse([]string{"--values", "child"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if len(values) != 1 || values[0] != "child" {
+		t.Fatalf("root values = %v, want [child]", values)
+	}
+}
+
+func TestDispatchAfterSliceTerminator(t *testing.T) {
+	var values []string
+	root := cmd.New("root", "")
+	root.Flags().StringSlice("values", &values, "Values")
+
+	var childSelected bool
+	child := cmd.New("child", "")
+	child.Flags().Bool("selected", &childSelected, "Selected")
+	root.Add(child)
+
+	if err := root.Parse([]string{"--values", "item", "--", "child", "--selected"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if len(values) != 1 || values[0] != "item" {
+		t.Fatalf("root values = %v, want [item]", values)
+	}
+	if !childSelected {
+		t.Fatal("child was not selected")
+	}
+}
+
+func TestUnmatchedPositionalBeforeKnownSubcommand(t *testing.T) {
+	root := cmd.New("root", "")
+
+	var childSelected bool
+	child := cmd.New("child", "")
+	child.Flags().Bool("selected", &childSelected, "Selected")
+	root.Add(child)
+
+	err := root.Parse([]string{"unknown", "child", "--selected"})
+	if err == nil {
+		t.Fatal("Parse() succeeded for an unmatched positional argument, want an error")
+	}
+	requireContains(t, err.Error(), `positional arguments are not allowed (got "unknown")`)
+	if childSelected {
+		t.Fatal("child was selected after an unmatched positional argument")
+	}
+}
+
 func TestDispatchNestedCommand(t *testing.T) {
 	var value string
 	root := cmd.New("root", "")
@@ -162,7 +237,7 @@ func TestSubcommandsConflictWithPositionalArguments(t *testing.T) {
 	root.Flags().WithPositionalArguments()
 	root.Add(cmd.New("child", ""))
 
-	for _, arguments := range [][]string{{"argument"}, {"child"}} {
+	for _, arguments := range [][]string{nil, {"argument"}, {"child"}} {
 		err := root.Parse(arguments)
 		if err == nil {
 			t.Fatalf("Parse(%v) succeeded, want an error", arguments)

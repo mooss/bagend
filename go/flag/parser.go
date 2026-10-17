@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/mooss/bagend/go/errs"
 )
 
 ////////////
@@ -41,16 +43,28 @@ func (par *Parser) AllowsPositionalArguments() bool {
 // Parse parses the given arguments.
 // It can be called multiple times.
 func (par *Parser) Parse(arguments []string) error {
+	_, _, err := par.ParseUntil(arguments, nil)
+	return err
+}
+
+// ParseUntil parses arguments until stop matches a positional argument, if any.
+// It returns the unconsumed arguments and whether parsing stopped early.
+func (par *Parser) ParseUntil(arguments []string, stop func(string) bool) ([]string, bool, error) {
 	expanded, err := par.validateAndExpand()
 	if err != nil {
-		return err
+		return nil, false, err
 	}
 
-	if err := par.processArguments(arguments, expanded); err != nil {
-		return err
+	remaining, stopped, err := par.processArguments(arguments, expanded, stop)
+	if err != nil {
+		return nil, false, err
 	}
 
-	return par.finalizeParse()
+	if err := par.finalizeParse(); err != nil {
+		return nil, false, err
+	}
+
+	return remaining, stopped, nil
 }
 
 // validateAndExpand checks definitions and expands the flags aliases.
@@ -77,12 +91,15 @@ func isSliceTerminator(arg string, dest sink, remaining int) bool {
 // processArguments loops over all the arguments and fills the given flagset.
 //
 //nolint:revive // Can't easily lower cognitive complexity.
-func (par *Parser) processArguments(arguments []string, flags flagset) error {
+func (par *Parser) processArguments(
+	arguments []string, flags flagset, stop func(string) bool,
+) ([]string, bool, error) {
 	var dest sink = &par.Positional
 	remaining := -1
 
-	for _, arg := range arguments {
+	for i, arg := range arguments {
 		if isSliceTerminator(arg, dest, remaining) {
+			// End of slice, resuming positional/subcommand.
 			dest = &par.Positional
 			remaining = 0
 			continue
@@ -92,12 +109,15 @@ func (par *Parser) processArguments(arguments []string, flags flagset) error {
 			if remaining == 0 {
 				dest = &par.Positional
 			}
+			if is[*PositionalArguments](dest) && stop != nil && stop(arg) {
+				return arguments[i:], true, nil
+			}
 			if is[*PositionalArguments](dest) && !par.allowPositional {
-				return fmt.Errorf("positional arguments are not allowed (got %q)", arg)
+				return nil, false, fmt.Errorf("positional arguments are not allowed (got %q)", arg)
 			}
 
 			if err := dest.consume(arg); err != nil {
-				return fmt.Errorf("when consuming %s (%s): %w", dest.names()[0], dest.kind(), err)
+				return nil, false, errs.Wrapf(err, "when consuming %s (%s)", dest.names()[0], dest.kind())
 			}
 
 			remaining--
@@ -108,7 +128,7 @@ func (par *Parser) processArguments(arguments []string, flags flagset) error {
 		dest = flags[arg]
 		switch {
 		case dest == nil:
-			return fmt.Errorf("unknown flag: %s", arg)
+			return nil, false, fmt.Errorf("unknown flag: %s", arg)
 		case is[*singletonflag[bool, Bool]](dest):
 			dest.consume("true") //nolint:errcheck // Cannot fail.
 			remaining = 0
@@ -118,10 +138,10 @@ func (par *Parser) processArguments(arguments []string, flags flagset) error {
 	}
 
 	if remaining > 0 {
-		return fmt.Errorf("flag `%s` requires a value", name2flag(dest.names()[0]))
+		return nil, false, fmt.Errorf("flag `%s` requires a value", name2flag(dest.names()[0]))
 	}
 
-	return nil
+	return nil, false, nil
 }
 
 // finalizeParse handles the help page and enforce default values.
