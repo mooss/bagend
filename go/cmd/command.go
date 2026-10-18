@@ -64,6 +64,16 @@ func (c *Command) Docline() string {
 	return c.docline
 }
 
+// AllNames returns a slice of the Command name and its aliases.
+func (c *Command) AllNames() []string {
+	return append([]string{c.name}, c.aliases...)
+}
+
+// PipedNames returns a the Command name and its aliases joined by a pipe.
+func (c *Command) PipedNames() string {
+	return strings.Join(c.AllNames(), "|")
+}
+
 //////////////////////
 // Fluent interface //
 
@@ -115,7 +125,7 @@ func (c *Command) Help() string {
 		help.Push(c.docline, "")
 	}
 
-	usage := c.name
+	usage := c.PipedNames()
 	if c.usage != "" {
 		usage += " " + c.usage
 	}
@@ -146,12 +156,12 @@ func (c *Command) subcommandsHelp() string {
 
 	width := 0
 	for _, subcommand := range subcommands {
-		width = max(width, len(subcommand.name))
+		width = max(width, len(subcommand.PipedNames()))
 	}
 
 	lines := make([]string, len(subcommands))
 	for i, subcommand := range subcommands {
-		lines[i] = fmt.Sprintf("  %-*s  %s", width, subcommand.name, subcommand.docline)
+		lines[i] = fmt.Sprintf("  %-*s  %s", width, subcommand.PipedNames(), subcommand.docline)
 	}
 
 	return strings.Join(lines, "\n") + "\n"
