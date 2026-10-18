@@ -64,6 +64,9 @@ func (c *Command) Docline() string {
 	return c.docline
 }
 
+//////////////////////
+// Fluent interface //
+
 // Description sets the command's longer description and returns it for fluent configuration.
 func (c *Command) Description(description string) *Command {
 	c.description = description
@@ -83,21 +86,27 @@ func (c *Command) Alias(aliases ...string) *Command {
 	return c
 }
 
-// Flags returns the underlying flag parser used to register flags.
-func (c *Command) Flags() *flag.Parser {
-	return c.parser
-}
-
 // Runner sets the function called to run the command.
 func (c *Command) Runner(runner func() error) *Command {
 	c.runner = runner
 	return c
 }
 
+///////////////////////////
+// Flags and subcommands //
+
+// Flags returns the underlying flag parser used to register flags.
+func (c *Command) Flags() *flag.Parser {
+	return c.parser
+}
+
 // Subcommands returns the registered subcommands in registration order.
 func (c *Command) Subcommands() []*Command {
 	return lie.Map(func(name string) *Command { return c.subs[name] }, c.suborder)
 }
+
+///////////////
+// Help page //
 
 // Help returns a formatted help page for the command and its direct subcommands.
 func (c *Command) Help() string {
