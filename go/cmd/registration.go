@@ -17,3 +17,10 @@ func (c *Command) Subcommand(sub *Command) *Command {
 func (c *Command) Register(name, docline string) *Command {
 	return c.Subcommand(New(name, docline))
 }
+
+// RegisterAll registers all the given commands as subcommands.
+func (c *Command) RegisterAll(subs ...*Command) {
+	for _, sub := range subs {
+		c.Subcommand(sub)
+	}
+}
