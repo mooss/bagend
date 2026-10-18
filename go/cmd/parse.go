@@ -30,7 +30,7 @@ func (c *Command) Execute(arguments []string) error {
 }
 
 func (c *Command) parse(arguments []string) (*Command, error) {
-	if len(c.subs) > 0 && c.parser.AllowsPositionalArguments() {
+	if len(c.subs) > 0 && c.Flags.AllowsPositionalArguments() {
 		msg := "command %q cannot have both subcommands and positional arguments"
 		return nil, fmt.Errorf(msg, c.name)
 	}
@@ -39,7 +39,7 @@ func (c *Command) parse(arguments []string) (*Command, error) {
 		return sub.parse(rest)
 	}
 
-	rest, stopped, err := c.parser.ParseUntil(arguments, func(arg string) bool {
+	rest, stopped, err := c.Flags.ParseUntil(arguments, func(arg string) bool {
 		_, ok := c.lookup(arg)
 		return ok
 	})

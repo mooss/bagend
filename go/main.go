@@ -17,7 +17,7 @@ func noerr(err error) {
 
 func newGreetCommand(dest *string) *cmd.Command {
 	greet := cmd.New("greet", "Print a greeting").Alias("gr")
-	greet.Flags().String("name", dest, "Who to greet").Default("world")
+	greet.Flags.String("name", dest, "Who to greet").Default("world")
 	greet.Runner(func() error {
 		fmt.Println("greet:", *dest)
 		return nil
@@ -27,7 +27,7 @@ func newGreetCommand(dest *string) *cmd.Command {
 
 func newSumCommand(dest *[]int) *cmd.Command {
 	sum := cmd.New("sum", "Sum numbers")
-	sum.Flags().IntSlice("numbers", dest, "Numbers to sum")
+	sum.Flags.IntSlice("numbers", dest, "Numbers to sum")
 	sum.Runner(func() error {
 		fmt.Println("sum:", *dest)
 		return nil
@@ -46,7 +46,7 @@ func main() {
 	)
 
 	root := cmd.New(os.Args[0], "").Usage("POSITIONAL [FLAGS]")
-	rootf := root.Flags().WithPositionalArguments()
+	rootf := root.Flags.WithPositionalArguments()
 	rootf.Int("twentythree", &twentythree, "Shephard").Default(23).Alias("23")
 	rootf.IntSlice("eight", &eight, "Reyes").Default([]int{8}).Alias("8")
 	rootf.String("four", &four, "Locke").Default("4").Alias("4")
@@ -80,6 +80,6 @@ space.`)
 	noerr(second.Execute([]string{"sum", "--numbers", "4", "8"}))
 
 	second.Usage("not Penny's boat")
-	second.Flags().EnableHelp()
+	second.Flags.EnableHelp()
 	noerr(second.Execute([]string{"--help", "sum", "--numbers", "4", "8"}))
 }

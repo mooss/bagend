@@ -2,8 +2,6 @@
 
 package cmd
 
-import "github.com/mooss/bagend/go/flag"
-
 // Subcommand registers a subcommand.
 // Registering subcommands to the same name overwrites the previous one.
 func (c *Command) Subcommand(sub *Command) *Command {
@@ -16,6 +14,6 @@ func (c *Command) Subcommand(sub *Command) *Command {
 }
 
 // Register creates and registers a subcommand, forwarding its arguments to Command.New.
-func (c *Command) Register(name, docline string, opts ...flag.ParserOpt) *Command {
-	return c.Subcommand(New(name, docline, opts...))
+func (c *Command) Register(name, docline string) *Command {
+	return c.Subcommand(New(name, docline))
 }

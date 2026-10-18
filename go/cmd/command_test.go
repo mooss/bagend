@@ -18,7 +18,7 @@ func requireContains(t *testing.T, got, want string) {
 func TestCommandDefinition(t *testing.T) {
 	var name string
 	command := cmd.New("greet", "Print a greeting")
-	command.Flags().String("name", &name, "Who to greet")
+	command.Flags.String("name", &name, "Who to greet")
 
 	if command.Name() != "greet" {
 		t.Fatalf("Name() = %q, want %q", command.Name(), "greet")
@@ -114,7 +114,7 @@ func TestCommandDescription(t *testing.T) {
 func TestCommandHelp(t *testing.T) {
 	var name string
 	root := cmd.New("tool", "Run a tool").Usage("[args]")
-	root.Flags().String("name", &name, "Who to greet")
+	root.Flags.String("name", &name, "Who to greet")
 
 	child := cmd.New("child", "Run a child command")
 	child.Subcommand(cmd.New("nested", "A nested command"))
@@ -230,7 +230,7 @@ func TestSubcommandAliases(t *testing.T) {
 
 	root := cmd.New("root", "")
 	child := cmd.New("child", "")
-	child.Flags().String("value", &value, "A value")
+	child.Flags.String("value", &value, "A value")
 	child.Runner(func() error {
 		childRan = true
 		return nil
@@ -258,10 +258,10 @@ func TestSubcommandAliases(t *testing.T) {
 func TestDispatchParsesSelectedCommand(t *testing.T) {
 	var parentName, childName string
 	root := cmd.New("root", "")
-	root.Flags().String("name", &parentName, "Parent name")
+	root.Flags.String("name", &parentName, "Parent name")
 
 	child := cmd.New("child", "")
-	child.Flags().String("name", &childName, "Child name")
+	child.Flags.String("name", &childName, "Child name")
 	root.Subcommand(child)
 
 	if err := root.Parse([]string{"child", "--name", "Locke"}); err != nil {
@@ -294,10 +294,10 @@ func assertDispatchNames(t *testing.T, parentName, childName, wantParent, wantCh
 func TestSubcommandNameAsFlagValue(t *testing.T) {
 	var rootName, childName string
 	root := cmd.New("root", "")
-	root.Flags().String("name", &rootName, "Root name")
+	root.Flags.String("name", &rootName, "Root name")
 
 	child := cmd.New("child", "")
-	child.Flags().String("name", &childName, "Child name")
+	child.Flags.String("name", &childName, "Child name")
 	root.Subcommand(child)
 
 	if err := root.Parse([]string{"--name", "child", "child", "--name", "Locke"}); err != nil {
@@ -314,7 +314,7 @@ func TestSubcommandNameAsFlagValue(t *testing.T) {
 func TestSubcommandNameAsSliceValue(t *testing.T) {
 	var values []string
 	root := cmd.New("root", "")
-	root.Flags().StringSlice("values", &values, "Values")
+	root.Flags.StringSlice("values", &values, "Values")
 
 	child := cmd.New("child", "")
 	root.Subcommand(child)
@@ -330,11 +330,11 @@ func TestSubcommandNameAsSliceValue(t *testing.T) {
 func TestDispatchAfterSliceTerminator(t *testing.T) {
 	var values []string
 	root := cmd.New("root", "")
-	root.Flags().StringSlice("values", &values, "Values")
+	root.Flags.StringSlice("values", &values, "Values")
 
 	var childSelected bool
 	child := cmd.New("child", "")
-	child.Flags().Bool("selected", &childSelected, "Selected")
+	child.Flags.Bool("selected", &childSelected, "Selected")
 	root.Subcommand(child)
 
 	if err := root.Parse([]string{"--values", "item", "--", "child", "--selected"}); err != nil {
@@ -353,7 +353,7 @@ func TestUnmatchedPositionalBeforeKnownSubcommand(t *testing.T) {
 
 	var childSelected bool
 	child := cmd.New("child", "")
-	child.Flags().Bool("selected", &childSelected, "Selected")
+	child.Flags.Bool("selected", &childSelected, "Selected")
 	root.Subcommand(child)
 
 	err := root.Parse([]string{"unknown", "child", "--selected"})
@@ -371,7 +371,7 @@ func TestDispatchNestedCommand(t *testing.T) {
 	root := cmd.New("root", "")
 	middle := cmd.New("middle", "")
 	leaf := cmd.New("leaf", "")
-	leaf.Flags().String("value", &value, "A value")
+	leaf.Flags.String("value", &value, "A value")
 	middle.Subcommand(leaf)
 	root.Subcommand(middle)
 
@@ -393,7 +393,7 @@ func TestDispatchNestedCommand(t *testing.T) {
 func TestFlagArgumentIsParsedByCurrentCommand(t *testing.T) {
 	var mode string
 	root := cmd.New("root", "")
-	root.Flags().String("mode", &mode, "Execution mode")
+	root.Flags.String("mode", &mode, "Execution mode")
 	root.Subcommand(cmd.New("run", ""))
 
 	if err := root.Parse([]string{"--mode", "fast"}); err != nil {
@@ -429,7 +429,7 @@ func TestUnknownFlagInDispatchedCommandIncludesContext(t *testing.T) {
 
 func TestSubcommandsConflictWithPositionalArguments(t *testing.T) {
 	root := cmd.New("root", "")
-	root.Flags().WithPositionalArguments()
+	root.Flags.WithPositionalArguments()
 	root.Subcommand(cmd.New("child", ""))
 
 	for _, arguments := range [][]string{nil, {"argument"}, {"child"}} {
@@ -446,7 +446,7 @@ func TestExecuteDispatchesNestedCommandAndParsesParentFlags(t *testing.T) {
 	var leafRan bool
 
 	root := cmd.New("root", "")
-	root.Flags().String("name", &name, "Name")
+	root.Flags.String("name", &name, "Name")
 
 	middle := cmd.New("middle", "")
 	leaf := cmd.New("leaf", "")
