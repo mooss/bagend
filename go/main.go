@@ -16,7 +16,7 @@ func noerr(err error) {
 }
 
 func newGreetCommand(dest *string) *cmd.Command {
-	greet := cmd.New("greet", "Print a greeting")
+	greet := cmd.New("greet", "Print a greeting").Alias("gr")
 	greet.Flags().String("name", dest, "Who to greet").Default("world")
 	greet.Runner(func() error {
 		fmt.Println("greet:", *dest)
@@ -63,7 +63,8 @@ func main() {
 
 	noerr(root.Execute(strings.Split("4 -8 15 16 --23 42 --hatch 3", " ")))
 
-	second := cmd.New("second", "").Description(`A command to showcase subcommands.
+	second := cmd.New("second", "Subcommand example").
+		Description(`A command to showcase subcommands.
 
 some
 

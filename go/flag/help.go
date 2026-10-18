@@ -10,18 +10,22 @@ import (
 // Help returns a formatted help string showing all registered flags and their documentation.
 func (par *Parser) Help() string {
 	align := 0
-	mkdecl := func(flg flag) string {
-		res := strings.Join(lie.Map(name2flag, flg.names()), ", ")
-		align = max(align, len(res))
+	type helpline struct {
+		decl string
+		doc  string
+	}
+	declarations := lie.Map(func(flg flag) helpline {
+		res := helpline{
+			decl: strings.Join(lie.Map(name2flag, flg.names()), ", "),
+			doc:  flg.docline(),
+		}
+
+		align = max(align, len(res.decl))
 		return res
-	}
-	declarations := lie.Map(mkdecl, par.canonical)
+	}, par.canonical)
 
-	format := fmt.Sprintf("  %%-%ds  %%s\n", align)
-	lines := make([]string, len(declarations))
-	for i, decl := range declarations {
-		lines[i] = fmt.Sprintf(format, decl, par.canonical[i].docline())
-	}
-
-	return strings.Join(lines, "")
+	format := fmt.Sprintf("  %%-%ds  %%s", align)
+	return strings.Join(lie.Map(func(h helpline) string {
+		return fmt.Sprintf(format, h.decl, h.doc)
+	}, declarations), "\n")
 }

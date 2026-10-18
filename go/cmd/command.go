@@ -7,6 +7,7 @@ import (
 
 	"github.com/mooss/bagend/go/flag"
 	"github.com/mooss/bagend/go/fun/eager/lie"
+	"github.com/mooss/bagend/go/obj/osl"
 )
 
 // This file defines the Command type, which groups flags and subcommands.
@@ -100,25 +101,32 @@ func (c *Command) Subcommands() []*Command {
 
 // Help returns a formatted help page for the command and its direct subcommands.
 func (c *Command) Help() string {
+	help := osl.New[string]()
+	if c.docline != "" {
+		help.Push(c.docline, "")
+	}
+
 	usage := c.name
 	if c.usage != "" {
 		usage += " " + c.usage
 	}
-	help := "Usage: " + usage + "\n\n"
+	help.Push("Usage: " + usage)
+
 	if c.description != "" {
-		help += c.description + "\n\n"
+		help.Push("", c.description)
 	}
-	help += "Flags:\n" + c.parser.Help()
-	if c.docline != "" {
-		help = c.docline + "\n\n" + help
+
+	flags := c.parser.Help()
+	if flags != "" {
+		help.Push("", "Flags:", flags)
 	}
 
 	subcommands := c.subcommandsHelp()
-	if subcommands == "" {
-		return help
+	if subcommands != "" {
+		help.Push("", "Commands:", subcommands)
 	}
 
-	return strings.TrimRight(help, "\n") + "\n\nCommands:\n" + subcommands
+	return strings.Join(help, "\n")
 }
 
 func (c *Command) subcommandsHelp() string {
