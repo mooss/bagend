@@ -180,6 +180,62 @@ func TestSubcommandRegistrationOrderAndReplacement(t *testing.T) {
 	}
 }
 
+func TestRegister(t *testing.T) {
+	root := cmd.New("root", "")
+	first := root.Register("first", "First command")
+	second := root.Register("second", "Second command")
+	replacement := root.Register("first", "Replacement command")
+
+	assertDifferentCommands(t, first, replacement)
+	assertRegisteredCommands(t, root, replacement, second)
+	assertReplacementDetails(t, replacement)
+	assertCommandsParse(t, root, "first", "second")
+}
+
+func assertDifferentCommands(t *testing.T, first, replacement *cmd.Command) {
+	t.Helper()
+
+	if first == replacement {
+		t.Fatal("Register() returned the same command for a repeated name")
+	}
+}
+
+func assertRegisteredCommands(t *testing.T, root *cmd.Command, replacement, second *cmd.Command) {
+	t.Helper()
+
+	got := root.Subcommands()
+	if len(got) != 2 {
+		t.Fatalf("Subcommands() returned %d commands, want 2", len(got))
+	}
+	if got[0] != replacement {
+		t.Fatalf("first registered command = %p, want replacement %p", got[0], replacement)
+	}
+	if got[1] != second {
+		t.Fatalf("second registered command = %p, want %p", got[1], second)
+	}
+}
+
+func assertReplacementDetails(t *testing.T, replacement *cmd.Command) {
+	t.Helper()
+
+	if replacement.Name() != "first" {
+		t.Fatalf("replacement name = %q, want %q", replacement.Name(), "first")
+	}
+	if replacement.Docline() != "Replacement command" {
+		t.Fatalf("replacement docline = %q, want %q", replacement.Docline(), "Replacement command")
+	}
+}
+
+func assertCommandsParse(t *testing.T, root *cmd.Command, names ...string) {
+	t.Helper()
+
+	for _, name := range names {
+		if err := root.Parse([]string{name}); err != nil {
+			t.Fatalf("Parse(%q) returned an error: %v", name, err)
+		}
+	}
+}
+
 func TestSubcommandAliases(t *testing.T) {
 	var value string
 	var childRan bool
