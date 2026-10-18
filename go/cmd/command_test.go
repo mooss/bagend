@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/mooss/bagend/go/cmd"
+	"github.com/mooss/bagend/go/flag"
 )
 
 func requireContains(t *testing.T, got, want string) {
@@ -32,6 +33,32 @@ func TestCommandDefinition(t *testing.T) {
 	}
 	if name != "Locke" {
 		t.Fatalf("parsed name = %q, want %q", name, "Locke")
+	}
+}
+
+func TestCommandEmplaceFlags(t *testing.T) {
+	command := cmd.New("tool", "Run a tool")
+	var value string
+	parser := flag.NewParser()
+	parser.String("value", &value, "A value")
+
+	if got := command.EmplaceFlags(parser); got != command {
+		t.Fatal("EmplaceFlags() did not return the command for fluent configuration")
+	}
+	if command.Flags() != parser {
+		t.Fatal("Flags() did not return the emplaced parser")
+	}
+
+	if err := command.Parse([]string{"--value", "test"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if value != "test" {
+		t.Fatalf("parsed value = %q, want %q", value, "test")
+	}
+
+	help := command.Help()
+	for _, want := range []string{"Usage: tool", "--value", "--help"} {
+		requireContains(t, help, want)
 	}
 }
 

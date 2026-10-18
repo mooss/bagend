@@ -49,11 +49,9 @@ func New(name, docline string) *Command {
 	command := &Command{
 		name:    name,
 		docline: docline,
-		parser:  flag.NewParser(),
 		subs:    map[string]*Command{},
 	}
-	command.parser.SetHelpPage(command.Help)
-	command.parser.EnableHelp()
+	command.EmplaceFlags(flag.NewParser())
 	return command
 }
 
@@ -78,27 +76,35 @@ func (c *Command) PipedNames() string {
 //////////////////////
 // Fluent interface //
 
-// Description sets the command's longer description and returns it for fluent configuration.
-func (c *Command) Description(description string) *Command {
-	c.description = description
-	return c
-}
-
-// Usage sets the command's usage arguments and returns it for fluent configuration.
-func (c *Command) Usage(usage string) *Command {
-	c.usage = usage
-	return c
-}
-
 // Alias adds aliases for this command and returns it for fluent configuration.
 func (c *Command) Alias(aliases ...string) *Command {
 	c.aliases = append(c.aliases, aliases...)
 	return c
 }
 
+// Description sets the command's longer description and returns it for fluent configuration.
+func (c *Command) Description(description string) *Command {
+	c.description = description
+	return c
+}
+
+// EmplaceFlags replace the flags of this command.
+func (c *Command) EmplaceFlags(parser *flag.Parser) *Command {
+	c.parser = parser
+	c.parser.SetHelpPage(c.Help)
+	c.parser.EnableHelp()
+	return c
+}
+
 // Runner sets the function called to run the command.
 func (c *Command) Runner(runner func() error) *Command {
 	c.runner = runner
+	return c
+}
+
+// Usage sets the command's usage arguments and returns it for fluent configuration.
+func (c *Command) Usage(usage string) *Command {
+	c.usage = usage
 	return c
 }
 
