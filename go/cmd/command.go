@@ -144,6 +144,7 @@ func (c *Command) Help() string {
 	if subcommands != "" {
 		help.Push("", "Commands:", subcommands)
 	}
+	help.Push("")
 
 	return strings.Join(help, "\n")
 }
@@ -154,15 +155,18 @@ func (c *Command) subcommandsHelp() string {
 		return ""
 	}
 
+	type helpline struct{ name, doc string }
 	width := 0
-	for _, subcommand := range subcommands {
-		width = max(width, len(subcommand.PipedNames()))
-	}
 
-	lines := make([]string, len(subcommands))
-	for i, subcommand := range subcommands {
-		lines[i] = fmt.Sprintf("  %-*s  %s", width, subcommand.PipedNames(), subcommand.docline)
-	}
+	helps := lie.Map(func(sub *Command) helpline {
+		name := sub.PipedNames()
+		width = max(width, len(name))
+		return helpline{name, sub.docline}
+	}, subcommands)
 
-	return strings.Join(lines, "\n") + "\n"
+	lines := lie.Map(func(help helpline) string {
+		return fmt.Sprintf("  %-*s  %s", width, help.name, help.doc)
+	}, helps)
+
+	return strings.Join(lines, "\n")
 }
