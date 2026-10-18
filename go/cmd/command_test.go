@@ -129,8 +129,8 @@ func TestCommandHelp(t *testing.T) {
 	root.Flags().String("name", &name, "Who to greet")
 
 	child := cmd.New("child", "Run a child command")
-	child.Add(cmd.New("nested", "A nested command"))
-	root.Add(child)
+	child.Subcommand(cmd.New("nested", "A nested command"))
+	root.Subcommand(child)
 
 	help := root.Help()
 	for _, want := range []string{
@@ -157,9 +157,9 @@ func TestSubcommandRegistrationOrderAndReplacement(t *testing.T) {
 
 	first.Alias("old-first")
 	replacement.Alias("new-first")
-	root.Add(first)
-	root.Add(second)
-	root.Add(replacement)
+	root.Subcommand(first)
+	root.Subcommand(second)
+	root.Subcommand(replacement)
 
 	if err := root.Parse([]string{"old-first"}); err == nil {
 		t.Fatal("Parse() succeeded with a stale alias after command replacement")
@@ -192,7 +192,7 @@ func TestSubcommandAliases(t *testing.T) {
 		return nil
 	})
 	child.Alias("c")
-	root.Add(child)
+	root.Subcommand(child)
 
 	if got := root.Subcommands(); len(got) != 1 || got[0] != child {
 		t.Fatalf("Subcommands() = %v, want only the canonical child", got)
@@ -218,7 +218,7 @@ func TestDispatchParsesSelectedCommand(t *testing.T) {
 
 	child := cmd.New("child", "")
 	child.Flags().String("name", &childName, "Child name")
-	root.Add(child)
+	root.Subcommand(child)
 
 	if err := root.Parse([]string{"child", "--name", "Locke"}); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
@@ -254,7 +254,7 @@ func TestSubcommandNameAsFlagValue(t *testing.T) {
 
 	child := cmd.New("child", "")
 	child.Flags().String("name", &childName, "Child name")
-	root.Add(child)
+	root.Subcommand(child)
 
 	if err := root.Parse([]string{"--name", "child", "child", "--name", "Locke"}); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
@@ -273,7 +273,7 @@ func TestSubcommandNameAsSliceValue(t *testing.T) {
 	root.Flags().StringSlice("values", &values, "Values")
 
 	child := cmd.New("child", "")
-	root.Add(child)
+	root.Subcommand(child)
 
 	if err := root.Parse([]string{"--values", "child"}); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
@@ -291,7 +291,7 @@ func TestDispatchAfterSliceTerminator(t *testing.T) {
 	var childSelected bool
 	child := cmd.New("child", "")
 	child.Flags().Bool("selected", &childSelected, "Selected")
-	root.Add(child)
+	root.Subcommand(child)
 
 	if err := root.Parse([]string{"--values", "item", "--", "child", "--selected"}); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
@@ -310,7 +310,7 @@ func TestUnmatchedPositionalBeforeKnownSubcommand(t *testing.T) {
 	var childSelected bool
 	child := cmd.New("child", "")
 	child.Flags().Bool("selected", &childSelected, "Selected")
-	root.Add(child)
+	root.Subcommand(child)
 
 	err := root.Parse([]string{"unknown", "child", "--selected"})
 	if err == nil {
@@ -328,8 +328,8 @@ func TestDispatchNestedCommand(t *testing.T) {
 	middle := cmd.New("middle", "")
 	leaf := cmd.New("leaf", "")
 	leaf.Flags().String("value", &value, "A value")
-	middle.Add(leaf)
-	root.Add(middle)
+	middle.Subcommand(leaf)
+	root.Subcommand(middle)
 
 	if err := root.Parse([]string{"middle", "leaf", "--value", "nested"}); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
@@ -350,7 +350,7 @@ func TestFlagArgumentIsParsedByCurrentCommand(t *testing.T) {
 	var mode string
 	root := cmd.New("root", "")
 	root.Flags().String("mode", &mode, "Execution mode")
-	root.Add(cmd.New("run", ""))
+	root.Subcommand(cmd.New("run", ""))
 
 	if err := root.Parse([]string{"--mode", "fast"}); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
@@ -362,7 +362,7 @@ func TestFlagArgumentIsParsedByCurrentCommand(t *testing.T) {
 
 func TestUnmatchedArgumentFallsBackToCurrentParser(t *testing.T) {
 	root := cmd.New("root", "")
-	root.Add(cmd.New("known", ""))
+	root.Subcommand(cmd.New("known", ""))
 
 	err := root.Parse([]string{"unknown"})
 	if err == nil {
@@ -373,7 +373,7 @@ func TestUnmatchedArgumentFallsBackToCurrentParser(t *testing.T) {
 
 func TestUnknownFlagInDispatchedCommandIncludesContext(t *testing.T) {
 	root := cmd.New("root", "")
-	root.Add(cmd.New("child", ""))
+	root.Subcommand(cmd.New("child", ""))
 
 	err := root.Parse([]string{"child", "--unknown"})
 	if err == nil {
@@ -386,7 +386,7 @@ func TestUnknownFlagInDispatchedCommandIncludesContext(t *testing.T) {
 func TestSubcommandsConflictWithPositionalArguments(t *testing.T) {
 	root := cmd.New("root", "")
 	root.Flags().WithPositionalArguments()
-	root.Add(cmd.New("child", ""))
+	root.Subcommand(cmd.New("child", ""))
 
 	for _, arguments := range [][]string{nil, {"argument"}, {"child"}} {
 		err := root.Parse(arguments)
@@ -410,8 +410,8 @@ func TestExecuteDispatchesNestedCommandAndParsesParentFlags(t *testing.T) {
 		leafRan = true
 		return nil
 	})
-	middle.Add(leaf)
-	root.Add(middle)
+	middle.Subcommand(leaf)
+	root.Subcommand(middle)
 
 	if err := root.Execute([]string{"--name", "Locke", "middle", "leaf"}); err != nil {
 		t.Fatalf("Execute() returned an error: %v", err)
@@ -432,7 +432,7 @@ func TestExecuteParseErrorDoesNotRunCommand(t *testing.T) {
 		childRan = true
 		return nil
 	})
-	root.Add(child)
+	root.Subcommand(child)
 
 	if err := root.Execute([]string{"unknown", "child"}); err == nil {
 		t.Fatal("Execute() succeeded for invalid arguments, want an error")

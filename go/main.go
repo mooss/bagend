@@ -73,8 +73,8 @@ empty
 ...
 
 space.`)
-	second.Add(newGreetCommand(&name))
-	second.Add(newSumCommand(&numbers))
+	second.Subcommand(newGreetCommand(&name))
+	second.Subcommand(newSumCommand(&numbers))
 
 	noerr(second.Execute([]string{"greet", "--name", "Locke"}))
 	noerr(second.Execute([]string{"sum", "--numbers", "4", "8"}))
