@@ -53,6 +53,7 @@ func New(name, docline string, opts ...flag.ParserOpt) *Command {
 		subs:    map[string]*Command{},
 	}
 	command.parser.SetHelpPage(command.Help)
+	command.parser.EnableHelp()
 	return command
 }
 
@@ -86,7 +87,6 @@ func (c *Command) Description(description string) *Command {
 // Usage sets the command's usage arguments and returns it for fluent configuration.
 func (c *Command) Usage(usage string) *Command {
 	c.usage = usage
-	c.parser.EnableHelp()
 	return c
 }
 

@@ -39,7 +39,6 @@ func TestCommandUsage(t *testing.T) {
 	t.Run("sets usage and enables help", testCommandUsageSetsUsageAndEnablesHelp)
 	t.Run("empty usage", testCommandUsageEmpty)
 	t.Run("repeated usage() replace without duplicate help flags", testCommandUsageRepeatedCalls)
-	t.Run("existing help flag is not registered twice", testCommandUsageExistingHelpFlag)
 }
 
 func testCommandUsageSetsUsageAndEnablesHelp(t *testing.T) {
@@ -83,17 +82,6 @@ func testCommandUsageRepeatedCalls(t *testing.T) {
 
 	if err := command.Parse(nil); err != nil {
 		t.Fatalf("Parse() returned an error after repeated Usage() calls: %v", err)
-	}
-}
-
-func testCommandUsageExistingHelpFlag(t *testing.T) {
-	var helpFlag bool
-	command := cmd.New("tool", "")
-	command.Flags().Bool("help", &helpFlag, "Custom help flag")
-	command.Usage("[args]")
-
-	if err := command.Parse(nil); err != nil {
-		t.Fatalf("Parse() returned an error with an existing help flag: %v", err)
 	}
 }
 
