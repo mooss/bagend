@@ -2,9 +2,9 @@
 
 package cmd
 
-// Subcommand registers a subcommand.
+// RegisterSub registers a subcommand.
 // Registering subcommands to the same name overwrites the previous one.
-func (c *Command) Subcommand(sub *Command) *Command {
+func (c *Command) RegisterSub(sub *Command) *Command {
 	if _, exists := c.subs[sub.name]; !exists {
 		c.suborder = append(c.suborder, sub.name)
 	}
@@ -13,14 +13,14 @@ func (c *Command) Subcommand(sub *Command) *Command {
 	return sub
 }
 
-// Register creates and registers a subcommand, forwarding its arguments to Command.New.
-func (c *Command) Register(name, docline string) *Command {
-	return c.Subcommand(New(name, docline))
+// RegisterNewSub creates and registers a subcommand, forwarding its arguments to Command.New.
+func (c *Command) RegisterNewSub(name, docline string) *Command {
+	return c.RegisterSub(New(name, docline))
 }
 
-// RegisterAll registers all the given commands as subcommands.
-func (c *Command) RegisterAll(subs ...*Command) {
+// RegisterSubs registers all the given commands as subcommands.
+func (c *Command) RegisterSubs(subs ...*Command) {
 	for _, sub := range subs {
-		c.Subcommand(sub)
+		c.RegisterSub(sub)
 	}
 }
