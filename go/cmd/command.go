@@ -27,8 +27,8 @@ type Command struct {
 	// usage contains the command's usage arguments.
 	usage string
 
-	// Flags stores the flags registered for the command.
-	Flags *flag.Parser
+	// parser stores the flags registered for the command.
+	parser *flag.Parser
 
 	// runner executes the command.
 	runner func() error
@@ -49,11 +49,11 @@ func New(name, docline string) *Command {
 	command := &Command{
 		name:    name,
 		docline: docline,
-		Flags:   flag.NewParser(),
+		parser:  flag.NewParser(),
 		subs:    map[string]*Command{},
 	}
-	command.Flags.SetHelpPage(command.Help)
-	command.Flags.EnableHelp()
+	command.parser.SetHelpPage(command.Help)
+	command.parser.EnableHelp()
 	return command
 }
 
@@ -105,6 +105,11 @@ func (c *Command) Runner(runner func() error) *Command {
 ///////////////////////////
 // Flags and subcommands //
 
+// Flags returns the underlying flag parser used to register flags.
+func (c *Command) Flags() *flag.Parser {
+	return c.parser
+}
+
 // Subcommands returns the registered subcommands in registration order.
 func (c *Command) Subcommands() []*Command {
 	return lie.Map(func(name string) *Command { return c.subs[name] }, c.suborder)
@@ -130,7 +135,7 @@ func (c *Command) Help() string {
 		help.Push("", c.description)
 	}
 
-	flags := c.Flags.Help()
+	flags := c.parser.Help()
 	if flags != "" {
 		help.Push("", "Flags:", flags)
 	}
