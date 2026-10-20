@@ -387,7 +387,7 @@ func TestUnmatchedPositionalBeforeKnownSubcommand(t *testing.T) {
 	if err == nil {
 		t.Fatal("Parse() succeeded for an unmatched positional argument, want an error")
 	}
-	requireContains(t, err.Error(), `positional arguments are not allowed (got "unknown")`)
+	requireContains(t, err.Error(), `invalid subcommand "unknown"`)
 	if childSelected {
 		t.Fatal("child was selected after an unmatched positional argument")
 	}
@@ -439,7 +439,7 @@ func TestUnmatchedArgumentFallsBackToCurrentParser(t *testing.T) {
 	if err == nil {
 		t.Fatal("Parse() succeeded for an unmatched positional argument, want an error")
 	}
-	requireContains(t, err.Error(), "positional arguments are not allowed")
+	requireContains(t, err.Error(), `invalid subcommand "unknown"`)
 }
 
 func TestUnknownFlagInDispatchedCommandIncludesContext(t *testing.T) {

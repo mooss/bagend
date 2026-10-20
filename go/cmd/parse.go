@@ -13,13 +13,13 @@ import (
 // Parse dispatches to the matching subcommand when the first argument names one,
 // otherwise it parses the arguments with its own flag Parser.
 func (c *Command) Parse(arguments []string) error {
-	_, err := c.parse(arguments)
+	_, err := c.parse(arguments, nil)
 	return err
 }
 
 // Execute parses the arguments and runs the selected command.
 func (c *Command) Execute(arguments []string) error {
-	selected, err := c.parse(arguments)
+	selected, err := c.parse(arguments, nil)
 	if err != nil {
 		return err
 	}
@@ -29,29 +29,53 @@ func (c *Command) Execute(arguments []string) error {
 	return selected.runner()
 }
 
-func (c *Command) parse(arguments []string) (*Command, error) {
-	if len(c.subs) > 0 && c.parser.AllowsPositionalArguments() {
-		msg := "command %q cannot have both subcommands and positional arguments"
-		return nil, fmt.Errorf(msg, c.name)
+func (c *Command) parse(arguments []string, path []string) (*Command, error) {
+	path = append(path, c.name)
+	if err := c.validateSubcommands(path); err != nil {
+		return nil, err
 	}
 
 	if sub, rest := c.findSub(arguments); sub != nil {
-		return sub.parse(rest)
+		return sub.parse(rest, path)
 	}
 
-	rest, stopped, err := c.parser.ParseUntil(arguments, func(arg string) bool {
-		_, ok := c.lookup(arg)
-		return ok
-	})
-	if err != nil {
-		return nil, errs.Wrapf(err, "command %q", c.name)
+	return c.parseArguments(arguments, path)
+}
+
+func (c *Command) validateSubcommands(path []string) error {
+	if len(c.subs) > 0 && c.parser.AllowsPositionalArguments() {
+		return fmt.Errorf(
+			"command %s cannot have both subcommands and positional arguments",
+			strings.Join(path, " "),
+		)
 	}
+	return nil
+}
+
+func (c *Command) parseArguments(arguments []string, path []string) (*Command, error) {
+	rest, stopped, err := c.parser.ParseUntil(arguments, c.shouldStop)
+	if err != nil {
+		return nil, errs.Wrapf(err, "command %s", strings.Join(path, " "))
+	}
+
 	if stopped {
-		sub, _ := c.lookup(rest[0])
-		return sub.parse(rest[1:])
+		sub, ok := c.lookup(rest[0])
+		if !ok {
+			err := fmt.Errorf("invalid subcommand %q", rest[0])
+			return nil, errs.Wrapf(err, "command %s", strings.Join(path, " "))
+		}
+		return sub.parse(rest[1:], path)
 	}
 
 	return c, nil
+}
+
+func (c *Command) shouldStop(arg string) bool {
+	if len(c.subs) > 0 {
+		return true
+	}
+	_, ok := c.lookup(arg)
+	return ok
 }
 
 // findSub returns the subcommand named by the first argument and the remaining arguments.

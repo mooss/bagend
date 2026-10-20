@@ -94,7 +94,15 @@ func isSliceTerminator(arg string, dest sink, remaining int) bool {
 	return arg == "--" && remaining != 0 && dest.arity() == -1 && !is[*PositionalArguments](dest)
 }
 
-// processArguments loops over all the arguments and fills the given flagset.
+// processArguments processes arguments using the provided flag set.
+//
+// arguments contains the command-line arguments to process.
+// flags maps flag names to their destinations.
+// stop (can be nil) determines whether a positional argument should stop parsing.
+//
+// Returns the unprocessed arguments and true when stop requests an end to parsing.
+// Otherwise, it returns nil and false.
+// If an argument cannot be processed, it returns an error.
 //
 //nolint:revive // Can't easily lower cognitive complexity.
 func (par *Parser) processArguments(
