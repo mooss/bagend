@@ -18,6 +18,7 @@ type Parser struct {
 	flags         flagset
 	canonical     []flag
 	flagDefErrors []error
+	parseCalled   bool
 	Positional    PositionalArguments
 
 	printHelp       bool
@@ -46,8 +47,13 @@ func (par *Parser) SetHelpPage(helpPage func() string) {
 }
 
 // Parse parses the given arguments.
-// It can be called multiple times.
+// It may only be called once.
 func (par *Parser) Parse(arguments []string) error {
+	if par.parseCalled {
+		return errors.New("parser may only be parsed once")
+	}
+	par.parseCalled = true
+
 	_, _, err := par.ParseUntil(arguments, nil)
 	return err
 }

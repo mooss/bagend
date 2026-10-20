@@ -85,6 +85,20 @@ func TestParser_BasicParsing(t *testing.T) {
 	}
 }
 
+func TestParser_ParseOnlyOnce(t *testing.T) {
+	t.Run("repeated after success", func(t *testing.T) {
+		par := NewParser()
+		noErr(t, par.Parse(nil))
+		yesErr(t, par.Parse(nil))
+	})
+
+	t.Run("repeated after failure", func(t *testing.T) {
+		par := NewParser()
+		yesErr(t, par.Parse([]string{"--unknown"}))
+		yesErr(t, par.Parse(nil))
+	})
+}
+
 func TestParser_FlagRegistration(t *testing.T) {
 	t.Run("duplicate flag", func(t *testing.T) {
 		par := NewParser()
@@ -261,6 +275,30 @@ func TestParser_DefaultValues(t *testing.T) {
 	})
 }
 
+func TestParser_SliceFlagDefaultAndAccumulation(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		expected []string
+	}{
+		{"first invocation overwrites default", []string{"--values", "first"}, []string{"first"}},
+		{"multiple invocations accumulate",
+			[]string{"--values", "first", "--values", "second"},
+			[]string{"first", "second"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			par := NewParser()
+			var values []string
+			par.StringSlice("values", &values, "test values").Default([]string{"default"})
+
+			noErr(t, par.Parse(tt.args))
+			eq(t, tt.expected, values)
+		})
+	}
+}
+
 func TestParser_BooleanFlags(t *testing.T) {
 	t.Run("boolean flag default value", func(t *testing.T) {
 		par := NewParser()
@@ -364,13 +402,6 @@ func TestParser_FluentMethodsForArgumentTypes(t *testing.T) {
 		Allowed("world").
 		AllowedFun(func(value string) bool { return len(value) >= 3 })
 
-	noErr(t, par.Parse(nil))
-	eq(t, 10, intValue)
-	eq(t, "default", stringValue)
-	eq(t, true, boolValue)
-	eq(t, []int{1}, intValues)
-	eq(t, []string{"default"}, stringValues)
-
 	noErr(t, par.Parse([]string{
 		"-i", "20",
 		"-s", "hello",
@@ -427,8 +458,6 @@ func TestParser_InvalidIntArguments(t *testing.T) {
 			var i int
 			par.Int("int_flag", &i, "test flag")
 			yesErr(t, par.Parse(tt.args))
-			// A previous success must not impact failing the following attempts.
-			yesErr(t, par.Parse(append([]string{"--int_flag", "1"}, tt.args...)))
 		})
 	}
 }
