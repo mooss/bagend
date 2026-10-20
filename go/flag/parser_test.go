@@ -369,6 +369,15 @@ func TestParser_AllowedValues(t *testing.T) {
 
 		yesErr(t, par.Parse([]string{"--value", "no"}))
 	})
+
+	t.Run("default values are allowed even when not listed", func(t *testing.T) {
+		par := NewParser()
+		var value int
+		par.Int("value", &value, "test value").Default(3).Allowed(1, 2)
+
+		noErr(t, par.Parse(nil))
+		eq(t, 3, value)
+	})
 }
 
 // TestParser_FluentMethodsForArgumentTypes tests that method chaining works properly.
