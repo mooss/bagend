@@ -1,3 +1,3 @@
 module github.com/mooss/bagend
 
-go 1.24.1
+go 1.27.0
