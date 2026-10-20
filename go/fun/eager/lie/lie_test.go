@@ -1,6 +1,8 @@
+//revive:disable:cognitive-complexity,cyclomatic
 package lie
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -21,7 +23,6 @@ func testMap[From any, To comparable](
 	})
 }
 
-//revive:disable:cognitive-complexity
 func TestMapFilter(t *testing.T) {
 	t.Run("filters nil results and preserves order", func(t *testing.T) {
 		result := MapFilter(func(x int) *int {
@@ -81,4 +82,75 @@ func TestMap(t *testing.T) {
 		func(x int) string { return string(rune(x + '0')) }, //nolint:gosec
 		[]string{"1", "2", "3"},
 	)
+}
+
+func TestMapE(t *testing.T) {
+	t.Run("maps all elements in order", func(t *testing.T) {
+		result, err := MapE(func(x int) (int, error) {
+			return x * 2, nil
+		}, []int{1, 2, 3})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		expected := []int{2, 4, 6}
+		if len(result) != len(expected) {
+			t.Fatalf("expected length %d, got %d", len(expected), len(result))
+		}
+		for i := range expected {
+			if result[i] != expected[i] {
+				t.Errorf("at index %d: expected %d, got %d", i, expected[i], result[i])
+			}
+		}
+	})
+
+	t.Run("empty and nil inputs do not invoke function", func(t *testing.T) {
+		for _, input := range [][]int{{}, nil} {
+			calls := 0
+			result, err := MapE(func(x int) (int, error) {
+				calls++
+				return x, nil
+			}, input)
+
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if len(result) != 0 {
+				t.Errorf("expected empty result, got %v", result)
+			}
+			if calls != 0 {
+				t.Errorf("expected function not to be called, got %d calls", calls)
+			}
+		}
+	})
+
+	t.Run("returns first error and stops processing", func(t *testing.T) {
+		wantErr := errors.New("mapping failed")
+		var calls []int
+
+		result, err := MapE(func(x int) (int, error) {
+			calls = append(calls, x)
+			if x == 3 {
+				return 0, wantErr
+			}
+			return x * 2, nil
+		}, []int{1, 2, 3, 4})
+
+		if !errors.Is(err, wantErr) {
+			t.Fatalf("expected error %v, got %v", wantErr, err)
+		}
+		if result != nil {
+			t.Errorf("expected nil result on error, got %v", result)
+		}
+
+		expectedCalls := []int{1, 2, 3}
+		if len(calls) != len(expectedCalls) {
+			t.Fatalf("expected %d calls, got %d", len(expectedCalls), len(calls))
+		}
+		for i := range expectedCalls {
+			if calls[i] != expectedCalls[i] {
+				t.Errorf("call %d: expected input %d, got %d", i, expectedCalls[i], calls[i])
+			}
+		}
+	})
 }

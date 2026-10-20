@@ -8,7 +8,7 @@ func Zero[T any]() T {
 }
 
 // Identity returns its only argument as-is.
-func Identity[T any](arg T) T {return arg}
+func Identity[T any](arg T) T { return arg }
 
 // ZeroDeref safely dereferences its argument using the zero value when it is nil.
 func ZeroDeref[T any](argp *T) T {
