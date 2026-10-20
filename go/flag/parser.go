@@ -143,7 +143,7 @@ func (par *Parser) processArguments(
 		switch {
 		case dest == nil:
 			return nil, false, fmt.Errorf("unknown flag: %s", arg)
-		case is[*singletonflag[bool, Bool]](dest):
+		case is[*singletonFlag[bool, Bool]](dest):
 			dest.consume("true") //nolint:errcheck // Cannot fail.
 			remaining = 0
 		default:

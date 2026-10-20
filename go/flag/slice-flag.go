@@ -2,17 +2,28 @@
 
 package flag
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 // sliceFlag represents a flag that can consume multiple values.
-// It implements both the flag and FluentFlag interfaces.
 type sliceFlag[T any, D Decoder[T]] struct {
-	// flagBase implements the FluentFlag interface and part of the flag interface.
-	flagBase[[]T]
+	baseFlag[[]T]
+	allowed func(T) bool
 }
 
 ///////////////////////////////////////////
 // Rest of flag interface implementation //
+
+func (*sliceFlag[T, D]) arity() int {
+	return -1 // A slice can always consume more elements.
+}
+
+func (*sliceFlag[T, D]) kind() string {
+	var zero T
+	return fmt.Sprintf("slice of %T", zero)
+}
 
 func (sf *sliceFlag[T, D]) consume(value string) error {
 	var decoder D
@@ -22,6 +33,10 @@ func (sf *sliceFlag[T, D]) consume(value string) error {
 		return err
 	}
 
+	if sf.allowed != nil && !sf.allowed(decoded) {
+		return fmt.Errorf("value %v is not allowed", decoded)
+	}
+
 	// Add the decoded value to the storage.
 	*sf.dest = append(*sf.dest, decoded)
 	sf.alreadySet = true
@@ -29,11 +44,33 @@ func (sf *sliceFlag[T, D]) consume(value string) error {
 	return nil
 }
 
-func (*sliceFlag[T, D]) arity() int {
-	return -1 // A slice can always consume more elements.
+// Alias registers its arguments as aliases.
+func (sf *sliceFlag[T, D]) Alias(aliases ...string) SliceFlag[T] {
+	sf.baseFlag.Alias(aliases...)
+	return sf
 }
 
-func (*sliceFlag[T, D]) kind() string {
-	var zero T
-	return fmt.Sprintf("slice of %T", zero)
+// Default sets the given value as the default.
+func (sf *sliceFlag[T, D]) Default(value []T) SliceFlag[T] {
+	sf.baseFlag.Default(value)
+	return sf
+}
+
+// Allowed restricts each slice element to the given values.
+func (sf *sliceFlag[T, D]) Allowed(values ...T) SliceFlag[T] {
+	allowedValues := append([]T(nil), values...)
+	return sf.AllowedFun(func(value T) bool {
+		for _, allowed := range allowedValues {
+			if reflect.DeepEqual(value, allowed) {
+				return true
+			}
+		}
+		return false
+	})
+}
+
+// AllowedFun sets a function that determines whether each element is accepted.
+func (sf *sliceFlag[T, D]) AllowedFun(allowed func(T) bool) SliceFlag[T] {
+	sf.allowed = allowed
+	return sf
 }

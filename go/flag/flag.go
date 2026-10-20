@@ -1,13 +1,6 @@
 // Package flag provides utilities to define CLI flags and parse arguments.
 package flag
 
-// This file defines the following interfaces:
-// - FluentFlags, used to provide additional options to flags after declaration.
-// - flag, used by the parser to register and manipulate declared flags.
-//
-// With those 2 interfaces, adding support to parse any new type is simply a matter of implementing
-// a Decoder.
-
 ////////////////
 // Interfaces //
 ////////////////
@@ -40,54 +33,43 @@ type flag interface {
 	enforceDefault()
 }
 
-// FluentFlag is the interface that is used for additional configuration of registered flags.
-type FluentFlag[T any] interface {
-	// Alias register its arguments as aliases.
-	Alias(...string) FluentFlag[T]
+// BooleanFlag is the public interface to configure boolean flags.
+type BooleanFlag[T any] interface {
+	// Alias registers its arguments as aliases.
+	Alias(...string) BooleanFlag[T]
 
 	// Default sets the given value as the default.
-	Default(T) FluentFlag[T]
+	Default(T) BooleanFlag[T]
 }
 
-//////////////
-// flagBase //
-//////////////
+// SingletonFlag is the public interface to configure singleton flag.
+type SingletonFlag[T any] interface {
+	// Alias registers its arguments as aliases.
+	Alias(...string) SingletonFlag[T]
 
-type flagBase[T any] struct {
-	def        T
-	dest       *T
-	docLine    string
-	namesStore []string
-	alreadySet bool
+	// Default sets the given value as the default.
+	Default(T) SingletonFlag[T]
+
+	// Allowed restricts the flag to the given values.
+	Allowed(...T) SingletonFlag[T]
+
+	// AllowedFun sets a function that determines whether a value is accepted.
+	AllowedFun(func(T) bool) SingletonFlag[T]
 }
 
-/////////////////////////////////////////
-// FluentFlag interface implementation //
+// SliceFlag is the public interface to configure slice flags.
+type SliceFlag[T any] interface {
+	// Alias registers its arguments as aliases.
+	Alias(...string) SliceFlag[T]
 
-func (fb *flagBase[T]) Alias(aliases ...string) FluentFlag[T] {
-	fb.namesStore = append(fb.namesStore, aliases...)
-	return fb
-}
+	// Default sets the given value as the default.
+	Default([]T) SliceFlag[T]
 
-func (fb *flagBase[T]) Default(value T) FluentFlag[T] {
-	fb.def = value
-	return fb
-}
+	// Allowed restricts each slice element to the given values.
+	Allowed(...T) SliceFlag[T]
 
-///////////////////////////////////////////
-// Part of flag interface implementation //
-
-func (fb flagBase[T]) names() []string {
-	return fb.namesStore
-}
-func (fb flagBase[T]) docline() string {
-	return fb.docLine
-}
-
-func (fb *flagBase[T]) enforceDefault() {
-	if !fb.alreadySet {
-		*fb.dest = fb.def
-	}
+	// AllowedFun sets a function that determines whether each element is accepted.
+	AllowedFun(func(T) bool) SliceFlag[T]
 }
 
 //////////////////////////

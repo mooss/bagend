@@ -300,6 +300,112 @@ func TestParser_StringSlice(t *testing.T) {
 	}
 }
 
+func TestParser_AllowedValues(t *testing.T) {
+	t.Run("allowed values accept a matching value", func(t *testing.T) {
+		par := NewParser()
+		var value int
+		par.Int("value", &value, "test value").Allowed(1, 2)
+
+		noErr(t, par.Parse([]string{"--value", "2"}))
+		eq(t, 2, value)
+	})
+
+	t.Run("allowed values reject a non-matching value", func(t *testing.T) {
+		par := NewParser()
+		value := 9
+		par.Int("value", &value, "test value").Allowed(1, 2)
+
+		yesErr(t, par.Parse([]string{"--value", "3"}))
+		eq(t, 9, value)
+	})
+
+	t.Run("custom allowed function", func(t *testing.T) {
+		par := NewParser()
+		var value string
+		par.String("value", &value, "test value").AllowedFun(func(value string) bool {
+			return len(value) >= 3
+		})
+
+		noErr(t, par.Parse([]string{"--value", "valid"}))
+		eq(t, "valid", value)
+
+		yesErr(t, par.Parse([]string{"--value", "no"}))
+	})
+}
+
+// TestParser_FluentMethodsForArgumentTypes tests that method chaining works properly.
+func TestParser_FluentMethodsForArgumentTypes(t *testing.T) {
+	par := NewParser()
+	var intValue int
+	var stringValue string
+	var boolValue bool
+	var intValues []int
+	var stringValues []string
+
+	par.Int("int", &intValue, "integer").
+		Alias("i").
+		Default(10).
+		Allowed(10, 20).
+		AllowedFun(func(value int) bool { return value >= 10 && value <= 20 })
+	par.String("string", &stringValue, "string").
+		Alias("s").
+		Default("default").
+		Allowed("hello", "world").
+		AllowedFun(func(value string) bool { return len(value) >= 3 })
+	par.Bool("bool", &boolValue, "boolean").Alias("b").Default(true)
+	par.IntSlice("ints", &intValues, "integers").
+		Alias("n").
+		Default([]int{1}).
+		Allowed(2, 3).
+		AllowedFun(func(value int) bool { return value >= 2 })
+	par.StringSlice("strings", &stringValues, "strings").
+		Alias("w").
+		Default([]string{"default"}).
+		Allowed("world").
+		AllowedFun(func(value string) bool { return len(value) >= 3 })
+
+	noErr(t, par.Parse(nil))
+	eq(t, 10, intValue)
+	eq(t, "default", stringValue)
+	eq(t, true, boolValue)
+	eq(t, []int{1}, intValues)
+	eq(t, []string{"default"}, stringValues)
+
+	noErr(t, par.Parse([]string{
+		"-i", "20",
+		"-s", "hello",
+		"-b",
+		"-n", "2",
+		"-w", "world",
+	}))
+	eq(t, 20, intValue)
+	eq(t, "hello", stringValue)
+	eq(t, true, boolValue)
+	eq(t, []int{2}, intValues)
+	eq(t, []string{"world"}, stringValues)
+}
+
+func TestParser_SliceAllowedValues(t *testing.T) {
+	t.Run("allowed values are checked individually", func(t *testing.T) {
+		par := NewParser()
+		var values []int
+		par.IntSlice("values", &values, "test values").Allowed(1, 2)
+
+		yesErr(t, par.Parse([]string{"--values", "1", "--values", "3"}))
+		eq(t, []int{1}, values)
+	})
+
+	t.Run("custom allowed function checks each value", func(t *testing.T) {
+		par := NewParser()
+		var values []string
+		par.StringSlice("values", &values, "test values").
+			AllowedFun(func(value string) bool { return len(value) >= 3 })
+
+		yesErr(t, par.Parse([]string{"--values", "valid", "--values", "no"}))
+		eq(t, []string{"valid"}, values)
+	})
+}
+
 func TestParser_InvalidIntArguments(t *testing.T) {
 	tests := []struct {
 		name string
