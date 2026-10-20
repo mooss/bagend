@@ -75,7 +75,7 @@ func runJSONDecodeCases(
 			}
 
 			wantWarning := warnOnUnknown && tc.hasUnknown && !tc.wantErr
-			gotWarning := strings.Contains(output.String(), "json: warning:")
+			gotWarning := strings.Contains(output.String(), "json: cannot unmarshal")
 			if gotWarning != wantWarning {
 				t.Errorf(
 					"warning logged = %t, want %t; log output: %q",
