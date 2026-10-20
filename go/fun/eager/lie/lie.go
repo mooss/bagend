@@ -10,3 +10,15 @@ func Map[From any, To any](fun func(From) To, source []From) []To {
 
 	return res
 }
+
+// MapFilter applies fun to each element in source and returns the non-nil results.
+func MapFilter[From any, To any](fun func(From) *To, source []From) []To {
+	res := make([]To, 0, len(source))
+	for _, el := range source {
+		if mapped := fun(el); mapped != nil {
+			res = append(res, *mapped)
+		}
+	}
+
+	return res
+}
