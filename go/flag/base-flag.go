@@ -18,12 +18,9 @@ func (fb *baseFlag[T]) Default(value T) BooleanFlag[T] {
 	return fb
 }
 
-func (fb baseFlag[T]) names() []string {
-	return fb.namesStore
-}
-func (fb baseFlag[T]) docline() string {
-	return fb.docLine
-}
+func (fb baseFlag[T]) docline() string    { return fb.docLine }
+func (fb baseFlag[T]) names() []string    { return fb.namesStore }
+func (fb baseFlag[T]) prettyName() string { return name2flag(fb.namesStore[0]) }
 
 func (fb *baseFlag[T]) enforceDefault() {
 	if !fb.alreadySet {

@@ -137,7 +137,8 @@ func (par *Parser) processArguments(
 			}
 
 			if err := dest.consume(arg); err != nil {
-				return nil, false, errs.Wrapf(err, "when consuming %s (%s)", dest.names()[0], dest.kind())
+				err = errs.Wrapf(err, "when consuming %s", dest.prettyName())
+				return nil, false, err
 			}
 
 			remaining--

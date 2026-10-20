@@ -20,6 +20,9 @@ type sink interface {
 
 	// names returns the names of the flag (the first is the canonical names, the rest are aliases).
 	names() []string
+
+	// prettyName returns the human-readable name of the sink.
+	prettyName() string
 }
 
 // flag is the interface all registered flags must implement.
@@ -86,5 +89,6 @@ func (pa *PositionalArguments) consume(value string) error {
 	return nil
 }
 
-func (*PositionalArguments) kind() string    { return "positional argument" }
-func (*PositionalArguments) names() []string { return []string{"POSARGS"} }
+func (*PositionalArguments) kind() string       { return "positional argument" }
+func (*PositionalArguments) names() []string    { return []string{"POSARGS"} }
+func (*PositionalArguments) prettyName() string { return "POSITIONAL" }
