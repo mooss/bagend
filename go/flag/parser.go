@@ -125,6 +125,23 @@ func (par *Parser) processArguments(
 			continue
 		}
 
+		if arg == "--" {
+			if remaining > 0 {
+				return nil, false, fmt.Errorf("flag `%s` requires a value", name2flag(dest.names()[0]))
+			}
+
+			for _, positional := range arguments[i+1:] {
+				if !par.allowPositional {
+					return nil, false, fmt.Errorf("positional arguments are not allowed (got %q)", positional)
+				}
+				if err := par.Positional.consume(positional); err != nil {
+					err = errs.Wrapf(err, "when consuming %s", par.Positional.prettyName())
+					return nil, false, err
+				}
+			}
+			return nil, false, nil
+		}
+
 		if !strings.HasPrefix(arg, "-") { // Value.
 			if remaining == 0 {
 				dest = &par.Positional

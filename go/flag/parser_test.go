@@ -57,7 +57,8 @@ func TestParser_BasicParsing(t *testing.T) {
 		{"no flags", []string{}, false},
 		{"unknown flag", []string{"-a"}, true},
 		{"empty flag name", []string{"-"}, true},
-		{"double dash", []string{"--"}, true},
+		{"double dash", []string{"--"}, false},
+		{"double dash followed by positional", []string{"--", "value"}, false},
 		{"flag without value", []string{"--flag"}, true},
 		{"multiple flags", []string{"--flag1", "1", "--flag2", "2"}, false},
 		{"mixed flags and positional", []string{"--flag", "1", "pos1", "pos2"}, false},
@@ -216,6 +217,51 @@ func TestParser_SliceTerminator(t *testing.T) {
 	noErr(t, par.Parse([]string{"--values", "first", "--", "positional"}))
 	eq(t, []string{"first"}, values)
 	eq(t, []string{"positional"}, []string(par.Positional))
+}
+
+func TestParser_FlagTerminator(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		args           []string
+		wantValue      int
+		wantSliceValue []int
+		wantPositional []string
+	}{
+		{
+			name:           "flags after separator are positional",
+			args:           []string{"--", "--flag", "23", "positional"},
+			wantPositional: []string{"--flag", "23", "positional"},
+		},
+		{
+			name:           "separator without following arguments",
+			args:           []string{"--"},
+			wantPositional: nil,
+		},
+		{
+			name:           "flag-like arguments after separator are positional",
+			args:           []string{"--", "--flag", "23", "--slice-flag", "1", "positional"},
+			wantPositional: []string{"--flag", "23", "--slice-flag", "1", "positional"},
+		},
+		{
+			name:           "flags before separator are parsed",
+			args:           []string{"--flag", "7", "--", "--flag", "23", "positional"},
+			wantValue:      7,
+			wantPositional: []string{"--flag", "23", "positional"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			par := NewParser(WithPositionalArguments())
+			var value int
+			var sliceValue []int
+			par.Int("flag", &value, "test flag")
+			par.IntSlice("slice-flag", &sliceValue, "test slice flag")
+
+			noErr(t, par.Parse(tc.args))
+			eq(t, tc.wantValue, value)
+			eq(t, tc.wantSliceValue, sliceValue)
+			eq(t, tc.wantPositional, []string(par.Positional))
+		})
+	}
 }
 
 func TestParser_PositionalArgumentsPolicy(t *testing.T) {

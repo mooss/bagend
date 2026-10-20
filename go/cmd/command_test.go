@@ -375,6 +375,24 @@ func TestDispatchAfterSliceTerminator(t *testing.T) {
 	}
 }
 
+func TestFlagTerminatorPreventsSubcommandDispatch(t *testing.T) {
+	root := cmd.New("root", "")
+
+	var childSelected bool
+	child := cmd.New("child", "")
+	child.Flags().Bool("selected", &childSelected, "Selected")
+	root.RegisterSub(child)
+
+	err := root.Parse([]string{"--", "child", "--selected"})
+	if err == nil {
+		t.Fatal("Parse() succeeded with positional arguments on a command that disallows them")
+	}
+	requireContains(t, err.Error(), "positional arguments are not allowed")
+	if childSelected {
+		t.Fatal("child was selected after the flag terminator")
+	}
+}
+
 func TestUnmatchedPositionalBeforeKnownSubcommand(t *testing.T) {
 	root := cmd.New("root", "")
 
