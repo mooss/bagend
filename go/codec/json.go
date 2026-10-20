@@ -76,7 +76,7 @@ func unmarshalWarnUnknownFields[T any](data []byte, res *T) error {
 		return err
 	}
 
-	log.Printf("json: warning: %v", err)
+	log.Printf("%v", err)
 	return jsonv2.Unmarshal(data, res)
 }
 
