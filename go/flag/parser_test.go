@@ -124,7 +124,7 @@ func TestParser_FlagRegistration(t *testing.T) {
 	})
 }
 
-func flagExpect[D Decoder[T], T any](t *testing.T, name string, args []string, expected T) {
+func flagExpect[D Decoder[T], T comparable](t *testing.T, name string, args []string, expected T) {
 	t.Helper()
 	var dest T
 	par := NewParser()
@@ -134,7 +134,9 @@ func flagExpect[D Decoder[T], T any](t *testing.T, name string, args []string, e
 	eq(t, expected, dest)
 }
 
-func flagExpectS[D Decoder[T], T any](t *testing.T, name string, args []string, expected []T) {
+func flagExpectSlice[D Decoder[T], T comparable](
+	t *testing.T, name string, args []string, expected []T,
+) {
 	var dest []T
 	par := NewParser()
 
@@ -170,9 +172,9 @@ func TestParser_FlagTypes(t *testing.T) {
 			case bool:
 				flagExpect[Bool](t, tt.name, tt.args, concrete)
 			case []int:
-				flagExpectS[Int](t, tt.name, tt.args, concrete)
+				flagExpectSlice[Int](t, tt.name, tt.args, concrete)
 			case []string:
-				flagExpectS[String](t, tt.name, tt.args, concrete)
+				flagExpectSlice[String](t, tt.name, tt.args, concrete)
 			default:
 				t.Errorf("unsupported type %T", tt.expected)
 			}

@@ -7,7 +7,7 @@ package flag
 
 // Register registers a singleton flag to a parser.
 // Registering different flags to the same destination is undefined behavior.
-func Register[Dec Decoder[T], T any](
+func Register[Dec Decoder[T], T comparable](
 	par *Parser, name string, dest *T, docline string,
 ) BooleanFlag[T] {
 	return registerSingleton[Dec](par, name, dest, docline)
@@ -15,7 +15,7 @@ func Register[Dec Decoder[T], T any](
 
 // RegisterSlice registers a slice flag to a parser.
 // Registering different flags to the same destination is undefined behavior.
-func RegisterSlice[Dec Decoder[T], T any](
+func RegisterSlice[Dec Decoder[T], T comparable](
 	par *Parser, name string, dest *[]T, docline string,
 ) SliceFlag[T] {
 	flg := sliceFlag[T, Dec]{
@@ -29,7 +29,7 @@ func RegisterSlice[Dec Decoder[T], T any](
 	return &flg
 }
 
-func registerSingleton[Dec Decoder[T], T any](
+func registerSingleton[Dec Decoder[T], T comparable](
 	par *Parser, name string, dest *T, docline string,
 ) *singletonFlag[T, Dec] {
 	flg := singletonFlag[T, Dec]{
@@ -42,7 +42,7 @@ func registerSingleton[Dec Decoder[T], T any](
 	return &flg
 }
 
-func registerAllowed[Dec Decoder[T], T any](
+func registerAllowed[Dec Decoder[T], T comparable](
 	par *Parser, name string, dest *T, docline string,
 ) SingletonFlag[T] {
 	return &allowedSingletonFlag[T, Dec]{

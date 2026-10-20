@@ -2,13 +2,10 @@
 
 package flag
 
-import (
-	"fmt"
-	"reflect"
-)
+import "fmt"
 
 // sliceFlag represents a flag that can consume multiple values.
-type sliceFlag[T any, D Decoder[T]] struct {
+type sliceFlag[T comparable, D Decoder[T]] struct {
 	baseFlag[[]T]
 	allowed func(T) bool
 }
@@ -26,15 +23,10 @@ func (*sliceFlag[T, D]) kind() string {
 }
 
 func (sf *sliceFlag[T, D]) consume(value string) error {
-	var decoder D
-	// Decode one value.
-	decoded, err := decoder.Decode(value)
+	// Decode one value and check whether it is allowed.
+	decoded, err := decodeAndCheck[T, D](value, sf.allowed)
 	if err != nil {
 		return err
-	}
-
-	if sf.allowed != nil && !sf.allowed(decoded) {
-		return fmt.Errorf("value %v is not allowed", decoded)
 	}
 
 	// Add the decoded value to the storage.
@@ -58,15 +50,7 @@ func (sf *sliceFlag[T, D]) Default(value []T) SliceFlag[T] {
 
 // Allowed restricts each slice element to the given values.
 func (sf *sliceFlag[T, D]) Allowed(values ...T) SliceFlag[T] {
-	allowedValues := append([]T(nil), values...)
-	return sf.AllowedFun(func(value T) bool {
-		for _, allowed := range allowedValues {
-			if reflect.DeepEqual(value, allowed) {
-				return true
-			}
-		}
-		return false
-	})
+	return sf.AllowedFun(allowedValues(values))
 }
 
 // AllowedFun sets a function that determines whether each element is accepted.

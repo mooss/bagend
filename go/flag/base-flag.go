@@ -1,5 +1,10 @@
 package flag
 
+import (
+	"fmt"
+	"slices"
+)
+
 type baseFlag[T any] struct {
 	def        T
 	dest       *T
@@ -26,4 +31,24 @@ func (fb *baseFlag[T]) enforceDefault() {
 	if !fb.alreadySet {
 		*fb.dest = fb.def
 	}
+}
+
+//////////////////////
+// Shared utilities //
+
+func allowedValues[T comparable](allowed []T) func(T) bool {
+	return func(value T) bool { return slices.Contains(allowed, value) }
+}
+
+func decodeAndCheck[T any, D Decoder[T]](source string, allowed func(T) bool) (T, error) {
+	var decoder D
+	decoded, err := decoder.Decode(source)
+	if err != nil {
+		return decoded, err
+	}
+
+	if allowed != nil && !allowed(decoded) {
+		return decoded, fmt.Errorf("value %v is not allowed", decoded)
+	}
+	return decoded, nil
 }
