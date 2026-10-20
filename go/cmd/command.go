@@ -18,6 +18,9 @@ type Command struct {
 	// name is the command's name.
 	name string
 
+	// parent is the command that registered this command as a subcommand.
+	parent *Command
+
 	// docline is the command's one-line documentation.
 	docline string
 
@@ -131,7 +134,7 @@ func (c *Command) Help() string {
 		help.Push(c.docline, "")
 	}
 
-	usage := c.PipedNames()
+	usage := c.commandPath()
 	if c.usage != "" {
 		usage += " " + c.usage
 	}
@@ -153,6 +156,13 @@ func (c *Command) Help() string {
 	help.Push("")
 
 	return strings.Join(help, "\n")
+}
+
+func (c *Command) commandPath() string {
+	if c.parent == nil {
+		return c.PipedNames()
+	}
+	return c.parent.commandPath() + " " + c.PipedNames()
 }
 
 func (c *Command) subcommandsHelp() string {

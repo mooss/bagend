@@ -9,6 +9,7 @@ func (c *Command) RegisterSub(sub *Command) *Command {
 		c.suborder = append(c.suborder, sub.name)
 	}
 
+	sub.parent = c
 	c.subs[sub.name] = sub
 	return sub
 }
