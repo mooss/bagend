@@ -154,3 +154,69 @@ func TestMapE(t *testing.T) {
 		}
 	})
 }
+
+func TestValidate(t *testing.T) {
+	t.Run("validates all elements in order", func(t *testing.T) {
+		var visited []int
+		err := Validate(func(x int) error {
+			visited = append(visited, x)
+			return nil
+		}, []int{1, 2, 3})
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		expected := []int{1, 2, 3}
+		if len(visited) != len(expected) {
+			t.Fatalf("expected %d elements visited, got %d", len(expected), len(visited))
+		}
+		for i := range expected {
+			if visited[i] != expected[i] {
+				t.Errorf("at index %d: expected %d, got %d", i, expected[i], visited[i])
+			}
+		}
+	})
+
+	t.Run("returns first error and stops processing", func(t *testing.T) {
+		wantErr := errors.New("validation failed")
+		var visited []int
+
+		err := Validate(func(x int) error {
+			visited = append(visited, x)
+			if x == 2 {
+				return wantErr
+			}
+			return nil
+		}, []int{1, 2, 3})
+
+		if !errors.Is(err, wantErr) {
+			t.Fatalf("expected error %v, got %v", wantErr, err)
+		}
+		expected := []int{1, 2}
+		if len(visited) != len(expected) {
+			t.Fatalf("expected %d elements visited, got %d", len(expected), len(visited))
+		}
+		for i := range expected {
+			if visited[i] != expected[i] {
+				t.Errorf("at index %d: expected %d, got %d", i, expected[i], visited[i])
+			}
+		}
+	})
+
+	t.Run("empty and nil inputs do not invoke function", func(t *testing.T) {
+		for _, input := range [][]int{{}, nil} {
+			calls := 0
+			err := Validate(func(int) error {
+				calls++
+				return nil
+			}, input)
+
+			if err != nil {
+				t.Errorf("expected no error, got %v", err)
+			}
+			if calls != 0 {
+				t.Errorf("expected function not to be called, got %d calls", calls)
+			}
+		}
+	})
+}

@@ -37,3 +37,14 @@ func MapFilter[From any, To any](fun func(From) *To, source []From) []To {
 
 	return res
 }
+
+// Validate applies fun to each element in source and returns the first error.
+func Validate[From any](fun func(From) error, source []From) error {
+	for _, el := range source {
+		err := fun(el)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
