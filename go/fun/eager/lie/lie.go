@@ -38,6 +38,17 @@ func MapFilter[From any, To any](fun func(From) *To, source []From) []To {
 	return res
 }
 
+// ToMap builds a map from the values of this slice.
+func ToMap[From any, Key comparable, Value any](
+	funk func(From) Key, funv func(From) Value, source []From,
+) map[Key]Value {
+	res := make(map[Key]Value, len(source))
+	for _, el := range source {
+		res[funk(el)] = funv(el)
+	}
+	return res
+}
+
 // Validate applies fun to each element in source and returns the first error.
 func Validate[From any](fun func(From) error, source []From) error {
 	for _, el := range source {

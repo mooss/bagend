@@ -155,6 +155,37 @@ func TestMapE(t *testing.T) {
 	})
 }
 
+func TestToMap(t *testing.T) {
+	t.Run("maps keys and values and keeps the last value for duplicate keys", func(t *testing.T) {
+		result := ToMap(
+			func(x int) int { return x % 2 },
+			func(x int) int { return x * x },
+			[]int{1, 2, 3, 4},
+		)
+
+		expected := map[int]int{1: 9, 0: 16}
+		if len(result) != len(expected) {
+			t.Fatalf("expected length %d, got %d", len(expected), len(result))
+		}
+		for key, want := range expected {
+			if got := result[key]; got != want {
+				t.Errorf("key %d: expected %d, got %d", key, want, got)
+			}
+		}
+	})
+
+	t.Run("empty input", func(t *testing.T) {
+		result := ToMap(
+			func(x int) int { return x },
+			func(x int) int { return x },
+			[]int{},
+		)
+		if len(result) != 0 {
+			t.Errorf("expected empty map, got %v", result)
+		}
+	})
+}
+
 func TestValidate(t *testing.T) {
 	t.Run("validates all elements in order", func(t *testing.T) {
 		var visited []int
