@@ -1,6 +1,19 @@
 // Package lie provides eager functional utilities operating on slices.
 package lie
 
+// EnsureFinal appends a final element to a slice if not there already.
+func EnsureFinal[T comparable](source []T, final T) []T {
+	if len(source) == 0 {
+		return []T{final}
+	}
+
+	if source[len(source)-1] == final {
+		return source
+	}
+
+	return append(source, final)
+}
+
 // Map returns a slice of the element-wise application of fun to source.
 func Map[From any, To any](fun func(From) To, source []From) []To {
 	res := make([]To, len(source))

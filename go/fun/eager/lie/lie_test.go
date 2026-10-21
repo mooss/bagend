@@ -58,6 +58,48 @@ func TestMapFilter(t *testing.T) {
 	})
 }
 
+func TestEnsureFinal(t *testing.T) {
+	tests := []struct {
+		name     string
+		source   []int
+		final    int
+		expected []int
+	}{
+		{
+			name:     "empty slice",
+			source:   []int{},
+			final:    7,
+			expected: []int{7},
+		},
+		{
+			name:     "appends missing final element",
+			source:   []int{1, 2},
+			final:    3,
+			expected: []int{1, 2, 3},
+		},
+		{
+			name:     "does not duplicate existing final element",
+			source:   []int{1, 2, 3},
+			final:    3,
+			expected: []int{1, 2, 3},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := EnsureFinal(test.source, test.final)
+			if len(result) != len(test.expected) {
+				t.Fatalf("expected length %d, got %d", len(test.expected), len(result))
+			}
+			for i := range test.expected {
+				if result[i] != test.expected[i] {
+					t.Errorf("at index %d: expected %d, got %d", i, test.expected[i], result[i])
+				}
+			}
+		})
+	}
+}
+
 func TestMap(t *testing.T) {
 	testMap(t, "int to square",
 		[]int{1, 2, 3, 4},
