@@ -62,6 +62,23 @@ func ToMap[From any, Key comparable, Value any](
 	return res
 }
 
+// ToMapKE builds a map from the values of this slice using funk to build the keys.
+// It stops at the first error and returns that error with a nil map.
+func ToMapKE[Key comparable, Value any](
+	funk func(Value) (Key, error), source []Value,
+) (map[Key]Value, error) {
+	res := make(map[Key]Value, len(source))
+	for _, el := range source {
+		key, err := funk(el)
+		if err != nil {
+			return nil, err
+		}
+
+		res[key] = el
+	}
+	return res, nil
+}
+
 // Validate applies fun to each element in source and returns the first error.
 func Validate[From any](fun func(From) error, source []From) error {
 	for _, el := range source {
