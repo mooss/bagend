@@ -79,6 +79,23 @@ func ToMapKE[Key comparable, Value any](
 	return res, nil
 }
 
+// ToMapVE builds a map using source values as keys and funv to build the values.
+// It stops at the first error and returns that error with a nil map.
+func ToMapVE[Key comparable, Value any](
+	funv func(Key) (Value, error), source []Key,
+) (map[Key]Value, error) {
+	res := make(map[Key]Value, len(source))
+	for _, el := range source {
+		value, err := funv(el)
+		if err != nil {
+			return nil, err
+		}
+
+		res[el] = value
+	}
+	return res, nil
+}
+
 // Validate applies fun to each element in source and returns the first error.
 func Validate[From any](fun func(From) error, source []From) error {
 	for _, el := range source {

@@ -291,6 +291,69 @@ func TestToMapKE(t *testing.T) {
 	})
 }
 
+func TestToMapVE(t *testing.T) {
+	t.Run("uses source values as keys and maps values", func(t *testing.T) {
+		result, err := ToMapVE(func(value string) (int, error) {
+			return len(value), nil
+		}, []string{"a", "bb"})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		expected := map[string]int{"a": 1, "bb": 2}
+		if len(result) != len(expected) {
+			t.Fatalf("expected length %d, got %d", len(expected), len(result))
+		}
+		for key, want := range expected {
+			if got := result[key]; got != want {
+				t.Errorf("key %q: expected %d, got %d", key, want, got)
+			}
+		}
+	})
+
+	t.Run("empty input returns an empty map", func(t *testing.T) {
+		result, err := ToMapVE(func(value int) (int, error) {
+			return value * 2, nil
+		}, []int{})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if len(result) != 0 {
+			t.Errorf("expected empty map, got %v", result)
+		}
+	})
+
+	t.Run("returns the first error and stops processing", func(t *testing.T) {
+		wantErr := errors.New("value mapping failed")
+		var calls []string
+
+		result, err := ToMapVE(func(value string) (int, error) {
+			calls = append(calls, value)
+			if value == "b" {
+				return 0, wantErr
+			}
+			return len(value), nil
+		}, []string{"a", "b", "c"})
+
+		if !errors.Is(err, wantErr) {
+			t.Fatalf("expected error %v, got %v", wantErr, err)
+		}
+		if result != nil {
+			t.Errorf("expected nil map on error, got %v", result)
+		}
+
+		expectedCalls := []string{"a", "b"}
+		if len(calls) != len(expectedCalls) {
+			t.Fatalf("expected %d calls, got %d", len(expectedCalls), len(calls))
+		}
+		for i := range expectedCalls {
+			if calls[i] != expectedCalls[i] {
+				t.Errorf("call %d: expected input %q, got %q", i, expectedCalls[i], calls[i])
+			}
+		}
+	})
+}
+
 func TestValidate(t *testing.T) {
 	t.Run("validates all elements in order", func(t *testing.T) {
 		var visited []int
