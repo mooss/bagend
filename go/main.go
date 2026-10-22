@@ -22,7 +22,7 @@ func newGreetCommand(dest *string) *cmd.Command {
 		Docline: "Print a greeting",
 		Flags:   flag.NewParser(),
 	}
-	greet.Alias = append(greet.Alias, "gr")
+	greet.Aliases = append(greet.Aliases, "gr")
 	greet.FlagsParser().String("name", dest, "Who to greet").Default("world")
 	greet.Runner = func() error {
 		fmt.Println("greet:", *dest)

@@ -166,8 +166,8 @@ func TestSubcommandRegistrationOrderAndReplacement(t *testing.T) {
 	second := &cmd.Command{Name: "second"}
 	replacement := &cmd.Command{Name: "first", Docline: "replacement"}
 
-	first.Alias = append(first.Alias, "old-first")
-	replacement.Alias = append(replacement.Alias, "new-first")
+	first.Aliases = append(first.Aliases, "old-first")
+	replacement.Aliases = append(replacement.Aliases, "new-first")
 	root.RegisterSub(first)
 	root.RegisterSub(second)
 	root.RegisterSub(replacement)
@@ -267,7 +267,7 @@ func TestSubcommandAliases(t *testing.T) {
 		childRan = true
 		return nil
 	}
-	child.Alias = append(child.Alias, "c")
+	child.Aliases = append(child.Aliases, "c")
 	root.RegisterSub(child)
 
 	if got := root.Subcommands(); len(got) != 1 || got[0] != child {

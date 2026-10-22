@@ -36,8 +36,8 @@ type Command struct {
 	// Runner executes the command.
 	Runner func() error
 
-	// Alias contains alternate names for the command.
-	Alias []string
+	// Aliases contains alternate names for the command.
+	Aliases []string
 
 	// subs maps each subcommand name to its Command.
 	subs map[string]*Command
@@ -48,7 +48,7 @@ type Command struct {
 
 // AllNames returns a slice of the Command name and its aliases.
 func (c *Command) AllNames() []string {
-	return append([]string{c.Name}, c.Alias...)
+	return append([]string{c.Name}, c.Aliases...)
 }
 
 // PipedNames returns a the Command name and its aliases joined by a pipe.

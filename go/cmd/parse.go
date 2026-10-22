@@ -106,7 +106,7 @@ func (c *Command) lookup(name string) (*Command, bool) {
 
 	for _, cmd := range c.suborder {
 		sub := c.subs[cmd]
-		if sub != nil && slices.Contains(sub.Alias, name) {
+		if sub != nil && slices.Contains(sub.Aliases, name) {
 			return sub, true
 		}
 	}
