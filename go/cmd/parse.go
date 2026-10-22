@@ -23,14 +23,16 @@ func (c *Command) Execute(arguments []string) error {
 	if err != nil {
 		return err
 	}
-	if selected.runner == nil {
-		return fmt.Errorf("command %q has no runner", selected.name)
+	if selected.Runner == nil {
+		return fmt.Errorf("command %q has no runner", selected.Name)
 	}
-	return selected.runner()
+	return selected.Runner()
 }
 
 func (c *Command) parse(arguments []string, path []string) (*Command, error) {
-	path = append(path, c.name)
+	c.ensureFlags()
+
+	path = append(path, c.Name)
 	if err := c.validateSubcommands(path); err != nil {
 		return nil, err
 	}
@@ -43,7 +45,7 @@ func (c *Command) parse(arguments []string, path []string) (*Command, error) {
 }
 
 func (c *Command) validateSubcommands(path []string) error {
-	if len(c.subs) > 0 && c.parser.AllowsPositionalArguments() {
+	if len(c.subs) > 0 && c.Flags.AllowsPositionalArguments() {
 		return fmt.Errorf(
 			"command %s cannot have both subcommands and positional arguments",
 			strings.Join(path, " "),
@@ -52,8 +54,9 @@ func (c *Command) validateSubcommands(path []string) error {
 	return nil
 }
 
+// Invariant: c.Flags must be initialized.
 func (c *Command) parseArguments(arguments []string, path []string) (*Command, error) {
-	rest, stopped, err := c.parser.ParseUntil(arguments, c.shouldStop)
+	rest, stopped, err := c.Flags.ParseUntil(arguments, c.shouldStop)
 	if err != nil {
 		return nil, errs.Wrapf(err, "command %s", strings.Join(path, " "))
 	}
@@ -103,7 +106,7 @@ func (c *Command) lookup(name string) (*Command, bool) {
 
 	for _, cmd := range c.suborder {
 		sub := c.subs[cmd]
-		if slices.Contains(sub.aliases, name) {
+		if sub != nil && slices.Contains(sub.Alias, name) {
 			return sub, true
 		}
 	}

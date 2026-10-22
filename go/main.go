@@ -16,9 +16,9 @@ func noerr(err error) {
 }
 
 func newGreetCommand(dest *string) *cmd.Command {
-	greet := cmd.New("greet", "Print a greeting").Alias("gr")
-	greet.Flags().String("name", dest, "Who to greet").Default("world")
-	greet.Runner(func() error {
+	greet := cmd.New("greet", "Print a greeting").SetAlias("gr")
+	greet.FlagsParser().String("name", dest, "Who to greet").Default("world")
+	greet.SetRunner(func() error {
 		fmt.Println("greet:", *dest)
 		return nil
 	})
@@ -27,8 +27,8 @@ func newGreetCommand(dest *string) *cmd.Command {
 
 func newSumCommand(dest *[]int) *cmd.Command {
 	sum := cmd.New("sum", "Sum numbers")
-	sum.Flags().IntSlice("numbers", dest, "Numbers to sum")
-	sum.Runner(func() error {
+	sum.FlagsParser().IntSlice("numbers", dest, "Numbers to sum")
+	sum.SetRunner(func() error {
 		fmt.Println("sum:", *dest)
 		return nil
 	})
@@ -45,14 +45,14 @@ func main() {
 		numbers     []int
 	)
 
-	root := cmd.New(os.Args[0], "").Usage("POSITIONAL [FLAGS]")
-	rootf := root.Flags().WithPositionalArguments()
+	root := cmd.New(os.Args[0], "").SetUsage("POSITIONAL [FLAGS]")
+	rootf := root.FlagsParser().WithPositionalArguments()
 	rootf.Int("twentythree", &twentythree, "Shephard").Default(23).Alias("23")
 	rootf.IntSlice("eight", &eight, "Reyes").Default([]int{8}).Alias("8")
 	rootf.String("four", &four, "Locke").Default("4").Alias("4")
 	rootf.Bool("hatch", &hatch, "The hatch")
 
-	root.Runner(func() error {
+	root.SetRunner(func() error {
 		fmt.Println(":23", twentythree)
 		fmt.Println(":8", eight)
 		fmt.Println(":4", four)
@@ -64,7 +64,7 @@ func main() {
 	noerr(root.Execute(strings.Split("4 -8 15 16 --23 42 --hatch 3", " ")))
 
 	second := cmd.New("second", "Subcommand example").
-		Description(`A command to showcase subcommands.
+		SetDescription(`A command to showcase subcommands.
 
 some
 
@@ -79,7 +79,7 @@ space.`)
 	noerr(second.Execute([]string{"greet", "--name", "Locke"}))
 	noerr(second.Execute([]string{"sum", "--numbers", "4", "8"}))
 
-	second.Usage("not Penny's boat")
-	second.Flags().EnableHelp()
+	second.SetUsage("not Penny's boat")
+	second.FlagsParser().EnableHelp()
 	noerr(second.Execute([]string{"--help", "sum", "--numbers", "4", "8"}))
 }

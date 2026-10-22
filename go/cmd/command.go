@@ -16,31 +16,31 @@ import (
 // A Command can register flags through its Parser and other Commands.
 type Command struct {
 	// name is the command's name.
-	name string
+	Name string
 
-	// parent is the command that registered this command as a subcommand.
-	parent *Command
+	// Parent is the command that registered this command as a subcommand.
+	Parent *Command
 
-	// docline is the command's one-line documentation.
-	docline string
+	// Docline is the command's one-line documentation.
+	Docline string
 
-	// description is the command's longer description.
-	description string
+	// Description is the command's longer description.
+	Description string
 
-	// usage contains the command's usage arguments.
-	usage string
+	// Usage contains the command's usage arguments.
+	Usage string
 
-	// parser stores the flags registered for the command.
-	parser *flag.Parser
+	// Flags stores the flags registered for the command.
+	Flags *flag.Parser
 
-	// runner executes the command.
-	runner func() error
+	// Runner executes the command.
+	Runner func() error
+
+	// Alias contains alternate names for the command.
+	Alias []string
 
 	// subs maps each subcommand name to its Command.
 	subs map[string]*Command
-
-	// aliases contains alternate names for the command.
-	aliases []string
 
 	// suborder records subcommand names in registration order.
 	suborder []string
@@ -50,25 +50,25 @@ type Command struct {
 // opts are forwarded to the underlying flag.Parser.
 func New(name, docline string) *Command {
 	command := &Command{
-		name:    name,
-		docline: docline,
+		Name:    name,
+		Docline: docline,
 		subs:    map[string]*Command{},
 	}
 	command.EmplaceFlags(flag.NewParser())
 	return command
 }
 
-func (c *Command) Name() string {
-	return c.name
+func (c *Command) GetName() string {
+	return c.Name
 }
 
-func (c *Command) Docline() string {
-	return c.docline
+func (c *Command) GetDocline() string {
+	return c.Docline
 }
 
 // AllNames returns a slice of the Command name and its aliases.
 func (c *Command) AllNames() []string {
-	return append([]string{c.name}, c.aliases...)
+	return append([]string{c.Name}, c.Alias...)
 }
 
 // PipedNames returns a the Command name and its aliases joined by a pipe.
@@ -79,44 +79,42 @@ func (c *Command) PipedNames() string {
 //////////////////////
 // Fluent interface //
 
-// Alias adds aliases for this command and returns it for fluent configuration.
-func (c *Command) Alias(aliases ...string) *Command {
-	c.aliases = append(c.aliases, aliases...)
+// SetAlias adds aliases for this command and returns it for fluent configuration.
+func (c *Command) SetAlias(aliases ...string) *Command {
+	c.Alias = append(c.Alias, aliases...)
 	return c
 }
 
-// Description sets the command's longer description and returns it for fluent configuration.
-func (c *Command) Description(description string) *Command {
-	c.description = description
+// SetDescription sets the command's longer description and returns it for fluent configuration.
+func (c *Command) SetDescription(description string) *Command {
+	c.Description = description
 	return c
 }
 
 // EmplaceFlags replace the flags of this command.
 func (c *Command) EmplaceFlags(parser *flag.Parser) *Command {
-	c.parser = parser
-	c.parser.SetHelpPage(c.Help)
-	c.parser.EnableHelp()
+	c.Flags = parser
 	return c
 }
 
-// Runner sets the function called to run the command.
-func (c *Command) Runner(runner func() error) *Command {
-	c.runner = runner
+// SetRunner sets the function called to run the command.
+func (c *Command) SetRunner(runner func() error) *Command {
+	c.Runner = runner
 	return c
 }
 
-// Usage sets the command's usage arguments and returns it for fluent configuration.
-func (c *Command) Usage(usage string) *Command {
-	c.usage = usage
+// SetUsage sets the command's usage arguments and returns it for fluent configuration.
+func (c *Command) SetUsage(usage string) *Command {
+	c.Usage = usage
 	return c
 }
 
 ///////////////////////////
 // Flags and subcommands //
 
-// Flags returns the underlying flag parser used to register flags.
-func (c *Command) Flags() *flag.Parser {
-	return c.parser
+// FlagsParser returns the underlying flag parser used to register flags.
+func (c *Command) FlagsParser() *flag.Parser {
+	return c.Flags
 }
 
 // Subcommands returns the registered subcommands in registration order.
@@ -129,22 +127,23 @@ func (c *Command) Subcommands() []*Command {
 
 // Help returns a formatted help page for the command and its direct subcommands.
 func (c *Command) Help() string {
+	c.ensureFlags()
 	help := osl.New[string]()
-	if c.docline != "" {
-		help.Push(c.docline, "")
+	if c.Docline != "" {
+		help.Push(c.Docline, "")
 	}
 
 	usage := c.commandPath()
-	if c.usage != "" {
-		usage += " " + c.usage
+	if c.Usage != "" {
+		usage += " " + c.Usage
 	}
 	help.Push("Usage: " + usage)
 
-	if c.description != "" {
-		help.Push("", c.description)
+	if c.Description != "" {
+		help.Push("", c.Description)
 	}
 
-	flags := c.parser.Help()
+	flags := c.Flags.Help()
 	if flags != "" {
 		help.Push("", "Flags:", flags)
 	}
@@ -159,10 +158,10 @@ func (c *Command) Help() string {
 }
 
 func (c *Command) commandPath() string {
-	if c.parent == nil {
+	if c.Parent == nil {
 		return c.PipedNames()
 	}
-	return c.parent.commandPath() + " " + c.PipedNames()
+	return c.Parent.commandPath() + " " + c.PipedNames()
 }
 
 func (c *Command) subcommandsHelp() string {
@@ -177,7 +176,7 @@ func (c *Command) subcommandsHelp() string {
 	helps := lie.Map(func(sub *Command) helpline {
 		name := sub.PipedNames()
 		width = max(width, len(name))
-		return helpline{name, sub.docline}
+		return helpline{name, sub.Docline}
 	}, subcommands)
 
 	lines := lie.Map(func(help helpline) string {
@@ -185,4 +184,13 @@ func (c *Command) subcommandsHelp() string {
 	}, helps)
 
 	return strings.Join(lines, "\n")
+}
+
+// ensureFlags ensures the flag parser is setup.
+func (c *Command) ensureFlags() {
+	if c.Flags == nil {
+		c.Flags = flag.NewParser()
+	}
+	c.Flags.SetHelpPage(c.Help)
+	c.Flags.EnableHelp()
 }
