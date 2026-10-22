@@ -19,11 +19,10 @@ type Parser struct {
 	canonical     []flag
 	flagDefErrors []error
 	parseCalled   bool
-	Positional    PositionalArguments
+	positional    PositionalArguments
 
-	printHelp       bool
-	customHelpPage  func() string
-	allowPositional bool
+	printHelp      bool
+	customHelpPage func() string
 }
 
 type ParserOpt func(*Parser)
@@ -37,8 +36,14 @@ func NewParser(opts ...ParserOpt) *Parser {
 	return &res
 }
 
-func (par *Parser) AllowsPositionalArguments() bool {
-	return par.allowPositional
+func (par *Parser) HasPositionalArguments() bool {
+	return par.positional.dest != nil
+}
+
+// Positional directs positional arguments into dest and enables positional argument parsing.
+func (par *Parser) Positional(dest *[]string) *Parser {
+	par.positional.dest = dest
+	return par
 }
 
 // SetHelpPage overrides the help page printed when the help flag is enabled.
@@ -114,13 +119,13 @@ func isSliceTerminator(arg string, dest sink, remaining int) bool {
 func (par *Parser) processArguments(
 	arguments []string, flags flagset, stop func(string) bool,
 ) ([]string, bool, error) {
-	var dest sink = &par.Positional
+	var dest sink = &par.positional
 	remaining := -1
 
 	for i, arg := range arguments {
 		if isSliceTerminator(arg, dest, remaining) {
 			// End of slice, resuming positional/subcommand.
-			dest = &par.Positional
+			dest = &par.positional
 			remaining = 0
 			continue
 		}
@@ -131,11 +136,11 @@ func (par *Parser) processArguments(
 			}
 
 			for _, positional := range arguments[i+1:] {
-				if !par.allowPositional {
+				if !par.HasPositionalArguments() {
 					return nil, false, fmt.Errorf("positional arguments are not allowed (got %q)", positional)
 				}
-				if err := par.Positional.consume(positional); err != nil {
-					err = errs.Wrapf(err, "when consuming %s", par.Positional.prettyName())
+				if err := par.positional.consume(positional); err != nil {
+					err = errs.Wrapf(err, "when consuming %s", par.positional.prettyName())
 					return nil, false, err
 				}
 			}
@@ -144,12 +149,12 @@ func (par *Parser) processArguments(
 
 		if !strings.HasPrefix(arg, "-") { // Value.
 			if remaining == 0 {
-				dest = &par.Positional
+				dest = &par.positional
 			}
 			if is[*PositionalArguments](dest) && stop != nil && stop(arg) {
 				return arguments[i:], true, nil
 			}
-			if is[*PositionalArguments](dest) && !par.allowPositional {
+			if is[*PositionalArguments](dest) && !par.HasPositionalArguments() {
 				return nil, false, fmt.Errorf("positional arguments are not allowed (got %q)", arg)
 			}
 
@@ -205,19 +210,6 @@ func (par *Parser) finalizeParse() error {
 
 ////////////////////
 // Parser options //
-
-// WithPositionalArguments enables positional arguments for the parser.
-func WithPositionalArguments() ParserOpt {
-	return func(cfg *Parser) {
-		cfg.allowPositional = true
-	}
-}
-
-// WithPositionalArguments enables positional arguments for the parser.
-func (par *Parser) WithPositionalArguments() *Parser {
-	WithPositionalArguments()(par)
-	return par
-}
 
 // EnableHelp registers a --help|-h flag that prints the help page when enabled.
 // Does nothing when a help flag has already been defined.

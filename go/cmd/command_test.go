@@ -478,8 +478,9 @@ func TestUnknownFlagInDispatchedCommandIncludesContext(t *testing.T) {
 }
 
 func TestSubcommandsConflictWithPositionalArguments(t *testing.T) {
+	var positional []string
 	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
-	root.Flags.WithPositionalArguments()
+	root.Flags.Positional(&positional)
 	root.RegisterSub(&cmd.Command{Name: "child"})
 
 	for _, arguments := range [][]string{nil, {"argument"}, {"child"}} {

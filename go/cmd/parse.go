@@ -45,7 +45,7 @@ func (c *Command) parse(arguments []string, path []string) (*Command, error) {
 }
 
 func (c *Command) validateSubcommands(path []string) error {
-	if len(c.subs) > 0 && c.Flags.AllowsPositionalArguments() {
+	if len(c.subs) > 0 && c.Flags.HasPositionalArguments() {
 		return fmt.Errorf(
 			"command %s cannot have both subcommands and positional arguments",
 			strings.Join(path, " "),

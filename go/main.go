@@ -53,6 +53,7 @@ func main() {
 		hatch       bool
 		name        string
 		numbers     []int
+		positional  []string
 	)
 
 	root := &cmd.Command{
@@ -60,7 +61,7 @@ func main() {
 		Flags: flag.NewParser(),
 	}
 	root.Usage = "POSITIONAL [FLAGS]"
-	rootf := root.FlagsParser().WithPositionalArguments()
+	rootf := root.FlagsParser().Positional(&positional)
 	rootf.Int("twentythree", &twentythree, "Shephard").Default(23).Alias("23")
 	rootf.IntSlice("eight", &eight, "Reyes").Default([]int{8}).Alias("8")
 	rootf.String("four", &four, "Locke").Default("4").Alias("4")
@@ -71,7 +72,7 @@ func main() {
 		fmt.Println(":8", eight)
 		fmt.Println(":4", four)
 		fmt.Println(":hatch", hatch)
-		fmt.Println(":positional", rootf.Positional)
+		fmt.Println(":positional", positional)
 		return nil
 	}
 

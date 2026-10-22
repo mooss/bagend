@@ -80,12 +80,14 @@ type SliceFlag[T any] interface {
 //////////////////////////
 
 // PositionalArguments implements the subset of flags methods required to consume arguments.
-type PositionalArguments []string
+type PositionalArguments struct {
+	dest *[]string
+}
 
 func (*PositionalArguments) arity() int { return -1 }
 
 func (pa *PositionalArguments) consume(value string) error {
-	*pa = append(*pa, value)
+	*pa.dest = append(*pa.dest, value)
 	return nil
 }
 

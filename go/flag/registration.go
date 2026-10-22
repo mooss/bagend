@@ -50,8 +50,8 @@ func registerAllowed[Dec Decoder[T], T comparable](
 	}
 }
 
-////////////////////////////////
-// Specific types: singletons //
+////////////////////
+// Specific types //
 
 func (par *Parser) Int(name string, dest *int, docline string) SingletonFlag[int] {
 	return registerAllowed[Int](par, name, dest, docline)

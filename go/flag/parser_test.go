@@ -69,7 +69,8 @@ func TestParser_BasicParsing(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var i int
-			par := NewParser(WithPositionalArguments())
+			var positional []string
+			par := NewParser().Positional(&positional)
 
 			// We don't care about where the flags go.
 			par.Int("flag", &i, "test flag")
@@ -199,24 +200,26 @@ func TestParser_PositionalArguments(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			par := NewParser(WithPositionalArguments())
+			var positional []string
+			par := NewParser().Positional(&positional)
 			var i int
 			par.Int("flag", &i, "test flag")
 			par.Int("flag2", &i, "test flag2")
 			noErr(t, par.Parse(tt.args))
-			eq(t, tt.expected, []string(par.Positional))
+			eq(t, tt.expected, positional)
 		})
 	}
 }
 
 func TestParser_SliceTerminator(t *testing.T) {
-	par := NewParser(WithPositionalArguments())
+	var positional []string
+	par := NewParser().Positional(&positional)
 	var values []string
 	par.StringSlice("values", &values, "test values")
 
 	noErr(t, par.Parse([]string{"--values", "first", "--", "positional"}))
 	eq(t, []string{"first"}, values)
-	eq(t, []string{"positional"}, []string(par.Positional))
+	eq(t, []string{"positional"}, positional)
 }
 
 func TestParser_FlagTerminator(t *testing.T) {
@@ -250,7 +253,8 @@ func TestParser_FlagTerminator(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			par := NewParser(WithPositionalArguments())
+			var positional []string
+			par := NewParser().Positional(&positional)
 			var value int
 			var sliceValue []int
 			par.Int("flag", &value, "test flag")
@@ -259,7 +263,7 @@ func TestParser_FlagTerminator(t *testing.T) {
 			noErr(t, par.Parse(tc.args))
 			eq(t, tc.wantValue, value)
 			eq(t, tc.wantSliceValue, sliceValue)
-			eq(t, tc.wantPositional, []string(par.Positional))
+			eq(t, tc.wantPositional, positional)
 		})
 	}
 }
@@ -271,13 +275,14 @@ func TestParser_PositionalArgumentsPolicy(t *testing.T) {
 	})
 
 	t.Run("allowed after a flag", func(t *testing.T) {
-		par := NewParser(WithPositionalArguments())
+		var positional []string
+		par := NewParser().Positional(&positional)
 		var value string
 		par.String("flag", &value, "test flag")
 
 		noErr(t, par.Parse([]string{"--flag", "flag value", "positional"}))
 		eq(t, "flag value", value)
-		eq(t, []string{"positional"}, []string(par.Positional))
+		eq(t, []string{"positional"}, []string(positional))
 	})
 
 	t.Run("refused after a flag", func(t *testing.T) {
