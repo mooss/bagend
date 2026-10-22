@@ -54,16 +54,8 @@ func New(name, docline string) *Command {
 		Docline: docline,
 		subs:    map[string]*Command{},
 	}
-	command.EmplaceFlags(flag.NewParser())
+	command.Flags = flag.NewParser()
 	return command
-}
-
-func (c *Command) GetName() string {
-	return c.Name
-}
-
-func (c *Command) GetDocline() string {
-	return c.Docline
 }
 
 // AllNames returns a slice of the Command name and its aliases.
@@ -74,39 +66,6 @@ func (c *Command) AllNames() []string {
 // PipedNames returns a the Command name and its aliases joined by a pipe.
 func (c *Command) PipedNames() string {
 	return strings.Join(c.AllNames(), "|")
-}
-
-//////////////////////
-// Fluent interface //
-
-// SetAlias adds aliases for this command and returns it for fluent configuration.
-func (c *Command) SetAlias(aliases ...string) *Command {
-	c.Alias = append(c.Alias, aliases...)
-	return c
-}
-
-// SetDescription sets the command's longer description and returns it for fluent configuration.
-func (c *Command) SetDescription(description string) *Command {
-	c.Description = description
-	return c
-}
-
-// EmplaceFlags replace the flags of this command.
-func (c *Command) EmplaceFlags(parser *flag.Parser) *Command {
-	c.Flags = parser
-	return c
-}
-
-// SetRunner sets the function called to run the command.
-func (c *Command) SetRunner(runner func() error) *Command {
-	c.Runner = runner
-	return c
-}
-
-// SetUsage sets the command's usage arguments and returns it for fluent configuration.
-func (c *Command) SetUsage(usage string) *Command {
-	c.Usage = usage
-	return c
 }
 
 ///////////////////////////

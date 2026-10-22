@@ -21,11 +21,11 @@ func TestCommandDefinition(t *testing.T) {
 	command := cmd.New("greet", "Print a greeting")
 	command.FlagsParser().String("name", &name, "Who to greet")
 
-	if command.GetName() != "greet" {
-		t.Fatalf("Name() = %q, want %q", command.GetName(), "greet")
+	if command.Name != "greet" {
+		t.Fatalf("Name = %q, want %q", command.Name, "greet")
 	}
-	if command.GetDocline() != "Print a greeting" {
-		t.Fatalf("Docline() = %q, want %q", command.GetDocline(), "Print a greeting")
+	if command.Docline != "Print a greeting" {
+		t.Fatalf("Docline = %q, want %q", command.Docline, "Print a greeting")
 	}
 
 	if err := command.Parse([]string{"--name", "Locke"}); err != nil {
@@ -42,11 +42,9 @@ func TestCommandEmplaceFlags(t *testing.T) {
 	parser := flag.NewParser()
 	parser.String("value", &value, "A value")
 
-	if got := command.EmplaceFlags(parser); got != command {
-		t.Fatal("EmplaceFlags() did not return the command for fluent configuration")
-	}
-	if command.FlagsParser() != parser {
-		t.Fatal("Flags() did not return the emplaced parser")
+	command.Flags = parser
+	if command.Flags != parser {
+		t.Fatal("Flags did not contain the assigned parser")
 	}
 
 	if err := command.Parse([]string{"--value", "test"}); err != nil {
@@ -70,9 +68,7 @@ func TestCommandUsage(t *testing.T) {
 
 func testCommandUsageSetsUsageAndEnablesHelp(t *testing.T) {
 	command := cmd.New("tool", "")
-	if got := command.SetUsage("[args]"); got != command {
-		t.Fatal("Usage() did not return the command for fluent configuration")
-	}
+	command.Usage = "[args]"
 
 	help := command.Help()
 	requireContains(t, help, "Usage: tool [args]")
@@ -84,7 +80,8 @@ func testCommandUsageSetsUsageAndEnablesHelp(t *testing.T) {
 }
 
 func testCommandUsageEmpty(t *testing.T) {
-	command := cmd.New("tool", "").SetUsage("")
+	command := cmd.New("tool", "")
+	command.Usage = ""
 
 	help := command.Help()
 	requireContains(t, help, "Usage: tool\n\nFlags:")
@@ -99,7 +96,9 @@ func testCommandUsageEmpty(t *testing.T) {
 }
 
 func testCommandUsageRepeatedCalls(t *testing.T) {
-	command := cmd.New("tool", "").SetUsage("[first]").SetUsage("[second]")
+	command := cmd.New("tool", "")
+	command.Usage = "[first]"
+	command.Usage = "[second]"
 
 	help := command.Help()
 	requireContains(t, help, "Usage: tool [second]")
@@ -113,13 +112,9 @@ func testCommandUsageRepeatedCalls(t *testing.T) {
 }
 
 func TestCommandDescription(t *testing.T) {
-	command := cmd.New("tool", "Run a tool").
-		SetUsage("[args]").
-		SetDescription("A longer description.")
-
-	if got := command.SetDescription("A longer description."); got != command {
-		t.Fatal("Description() did not return the command for fluent configuration")
-	}
+	command := cmd.New("tool", "Run a tool")
+	command.Usage = "[args]"
+	command.Description = "A longer description."
 
 	help := command.Help()
 	usageIndex := strings.Index(help, "Usage: tool [args]")
@@ -140,7 +135,8 @@ func TestCommandDescription(t *testing.T) {
 
 func TestCommandHelp(t *testing.T) {
 	var name string
-	root := cmd.New("tool", "Run a tool").SetUsage("[args]")
+	root := cmd.New("tool", "Run a tool")
+	root.Usage = "[args]"
 	root.FlagsParser().String("name", &name, "Who to greet")
 
 	child := cmd.New("child", "Run a child command")
@@ -170,8 +166,8 @@ func TestSubcommandRegistrationOrderAndReplacement(t *testing.T) {
 	second := cmd.New("second", "")
 	replacement := cmd.New("first", "replacement")
 
-	first.SetAlias("old-first")
-	replacement.SetAlias("new-first")
+	first.Alias = append(first.Alias, "old-first")
+	replacement.Alias = append(replacement.Alias, "new-first")
 	root.RegisterSub(first)
 	root.RegisterSub(second)
 	root.RegisterSub(replacement)
@@ -233,11 +229,11 @@ func assertRegisteredCommands(t *testing.T, root *cmd.Command, replacement, seco
 func assertReplacementDetails(t *testing.T, replacement *cmd.Command) {
 	t.Helper()
 
-	if replacement.GetName() != "first" {
-		t.Fatalf("replacement name = %q, want %q", replacement.GetName(), "first")
+	if replacement.Name != "first" {
+		t.Fatalf("replacement name = %q, want %q", replacement.Name, "first")
 	}
-	if replacement.GetDocline() != "Replacement command" {
-		t.Fatalf("replacement docline = %q, want %q", replacement.GetDocline(), "Replacement command")
+	if replacement.Docline != "Replacement command" {
+		t.Fatalf("replacement docline = %q, want %q", replacement.Docline, "Replacement command")
 	}
 }
 
@@ -258,11 +254,11 @@ func TestSubcommandAliases(t *testing.T) {
 	root := cmd.New("root", "")
 	child := cmd.New("child", "")
 	child.FlagsParser().String("value", &value, "A value")
-	child.SetRunner(func() error {
+	child.Runner = func() error {
 		childRan = true
 		return nil
-	})
-	child.SetAlias("c")
+	}
+	child.Alias = append(child.Alias, "c")
 	root.RegisterSub(child)
 
 	if got := root.Subcommands(); len(got) != 1 || got[0] != child {
@@ -495,10 +491,10 @@ func TestExecuteDispatchesNestedCommandAndParsesParentFlags(t *testing.T) {
 
 	middle := cmd.New("middle", "")
 	leaf := cmd.New("leaf", "")
-	leaf.SetRunner(func() error {
+	leaf.Runner = func() error {
 		leafRan = true
 		return nil
-	})
+	}
 	middle.RegisterSub(leaf)
 	root.RegisterSub(middle)
 
@@ -517,10 +513,10 @@ func TestExecuteParseErrorDoesNotRunCommand(t *testing.T) {
 	var childRan bool
 	root := cmd.New("root", "")
 	child := cmd.New("child", "")
-	child.SetRunner(func() error {
+	child.Runner = func() error {
 		childRan = true
 		return nil
-	})
+	}
 	root.RegisterSub(child)
 
 	if err := root.Execute([]string{"unknown", "child"}); err == nil {
@@ -534,9 +530,9 @@ func TestExecuteParseErrorDoesNotRunCommand(t *testing.T) {
 func TestExecuteReturnsRunnerError(t *testing.T) {
 	want := errors.New("runner failed")
 	root := cmd.New("root", "")
-	root.SetRunner(func() error {
+	root.Runner = func() error {
 		return want
-	})
+	}
 
 	if err := root.Execute(nil); !errors.Is(err, want) {
 		t.Fatalf("Execute() error = %v, want %v", err, want)
@@ -556,10 +552,10 @@ func TestExecuteRequiresRunner(t *testing.T) {
 func TestParseDoesNotRunCommand(t *testing.T) {
 	var runnerCalled bool
 	root := cmd.New("root", "")
-	root.SetRunner(func() error {
+	root.Runner = func() error {
 		runnerCalled = true
 		return nil
-	})
+	}
 
 	if err := root.Parse(nil); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
