@@ -5,6 +5,10 @@ package cmd
 // RegisterSub registers a subcommand.
 // Registering subcommands to the same name overwrites the previous one.
 func (c *Command) RegisterSub(sub *Command) *Command {
+	if c.subs == nil {
+		c.subs = map[string]*Command{}
+	}
+
 	if _, exists := c.subs[sub.Name]; !exists {
 		c.suborder = append(c.suborder, sub.Name)
 	}
@@ -12,11 +16,6 @@ func (c *Command) RegisterSub(sub *Command) *Command {
 	sub.Parent = c
 	c.subs[sub.Name] = sub
 	return sub
-}
-
-// RegisterNewSub creates and registers a subcommand, forwarding its arguments to Command.New.
-func (c *Command) RegisterNewSub(name, docline string) *Command {
-	return c.RegisterSub(New(name, docline))
 }
 
 // RegisterSubs registers all the given commands as subcommands.

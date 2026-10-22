@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/mooss/bagend/go/cmd"
+	"github.com/mooss/bagend/go/flag"
 )
 
 func noerr(err error) {
@@ -16,7 +17,11 @@ func noerr(err error) {
 }
 
 func newGreetCommand(dest *string) *cmd.Command {
-	greet := cmd.New("greet", "Print a greeting")
+	greet := &cmd.Command{
+		Name:    "greet",
+		Docline: "Print a greeting",
+		Flags:   flag.NewParser(),
+	}
 	greet.Alias = append(greet.Alias, "gr")
 	greet.FlagsParser().String("name", dest, "Who to greet").Default("world")
 	greet.Runner = func() error {
@@ -27,7 +32,11 @@ func newGreetCommand(dest *string) *cmd.Command {
 }
 
 func newSumCommand(dest *[]int) *cmd.Command {
-	sum := cmd.New("sum", "Sum numbers")
+	sum := &cmd.Command{
+		Name:    "sum",
+		Docline: "Sum numbers",
+		Flags:   flag.NewParser(),
+	}
 	sum.FlagsParser().IntSlice("numbers", dest, "Numbers to sum")
 	sum.Runner = func() error {
 		fmt.Println("sum:", *dest)
@@ -46,7 +55,10 @@ func main() {
 		numbers     []int
 	)
 
-	root := cmd.New(os.Args[0], "")
+	root := &cmd.Command{
+		Name:  os.Args[0],
+		Flags: flag.NewParser(),
+	}
 	root.Usage = "POSITIONAL [FLAGS]"
 	rootf := root.FlagsParser().WithPositionalArguments()
 	rootf.Int("twentythree", &twentythree, "Shephard").Default(23).Alias("23")
@@ -65,7 +77,11 @@ func main() {
 
 	noerr(root.Execute(strings.Split("4 -8 15 16 --23 42 --hatch 3", " ")))
 
-	second := cmd.New("second", "Subcommand example")
+	second := &cmd.Command{
+		Name:    "second",
+		Docline: "Subcommand example",
+		Flags:   flag.NewParser(),
+	}
 	second.Description = `A command to showcase subcommands.
 
 some

@@ -46,18 +46,6 @@ type Command struct {
 	suborder []string
 }
 
-// New returns a Command with the given name and documentation line.
-// opts are forwarded to the underlying flag.Parser.
-func New(name, docline string) *Command {
-	command := &Command{
-		Name:    name,
-		Docline: docline,
-		subs:    map[string]*Command{},
-	}
-	command.Flags = flag.NewParser()
-	return command
-}
-
 // AllNames returns a slice of the Command name and its aliases.
 func (c *Command) AllNames() []string {
 	return append([]string{c.Name}, c.Alias...)

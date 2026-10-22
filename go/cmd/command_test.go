@@ -18,7 +18,7 @@ func requireContains(t *testing.T, got, want string) {
 
 func TestCommandDefinition(t *testing.T) {
 	var name string
-	command := cmd.New("greet", "Print a greeting")
+	command := &cmd.Command{Name: "greet", Docline: "Print a greeting", Flags: flag.NewParser()}
 	command.FlagsParser().String("name", &name, "Who to greet")
 
 	if command.Name != "greet" {
@@ -37,7 +37,7 @@ func TestCommandDefinition(t *testing.T) {
 }
 
 func TestCommandEmplaceFlags(t *testing.T) {
-	command := cmd.New("tool", "Run a tool")
+	command := &cmd.Command{Name: "tool", Docline: "Run a tool"}
 	var value string
 	parser := flag.NewParser()
 	parser.String("value", &value, "A value")
@@ -67,7 +67,7 @@ func TestCommandUsage(t *testing.T) {
 }
 
 func testCommandUsageSetsUsageAndEnablesHelp(t *testing.T) {
-	command := cmd.New("tool", "")
+	command := &cmd.Command{Name: "tool"}
 	command.Usage = "[args]"
 
 	help := command.Help()
@@ -80,7 +80,7 @@ func testCommandUsageSetsUsageAndEnablesHelp(t *testing.T) {
 }
 
 func testCommandUsageEmpty(t *testing.T) {
-	command := cmd.New("tool", "")
+	command := &cmd.Command{Name: "tool"}
 	command.Usage = ""
 
 	help := command.Help()
@@ -96,7 +96,7 @@ func testCommandUsageEmpty(t *testing.T) {
 }
 
 func testCommandUsageRepeatedCalls(t *testing.T) {
-	command := cmd.New("tool", "")
+	command := &cmd.Command{Name: "tool"}
 	command.Usage = "[first]"
 	command.Usage = "[second]"
 
@@ -112,7 +112,7 @@ func testCommandUsageRepeatedCalls(t *testing.T) {
 }
 
 func TestCommandDescription(t *testing.T) {
-	command := cmd.New("tool", "Run a tool")
+	command := &cmd.Command{Name: "tool", Docline: "Run a tool"}
 	command.Usage = "[args]"
 	command.Description = "A longer description."
 
@@ -127,7 +127,7 @@ func TestCommandDescription(t *testing.T) {
 		t.Fatalf("Help() should place the description between usage and flags: %q", help)
 	}
 
-	got := cmd.New("plain", "").Help()
+	got := (&cmd.Command{Name: "plain"}).Help()
 	if strings.Contains(got, "Flags:") && strings.Contains(got, "\\n\\n\\nFlags:") {
 		t.Fatalf("Help() included an extra blank line without a description: %q", got)
 	}
@@ -135,12 +135,12 @@ func TestCommandDescription(t *testing.T) {
 
 func TestCommandHelp(t *testing.T) {
 	var name string
-	root := cmd.New("tool", "Run a tool")
+	root := &cmd.Command{Name: "tool", Docline: "Run a tool", Flags: flag.NewParser()}
 	root.Usage = "[args]"
 	root.FlagsParser().String("name", &name, "Who to greet")
 
-	child := cmd.New("child", "Run a child command")
-	child.RegisterSub(cmd.New("nested", "A nested command"))
+	child := &cmd.Command{Name: "child", Docline: "Run a child command"}
+	child.RegisterSub(&cmd.Command{Name: "nested", Docline: "A nested command"})
 	root.RegisterSub(child)
 
 	help := root.Help()
@@ -161,10 +161,10 @@ func TestCommandHelp(t *testing.T) {
 }
 
 func TestSubcommandRegistrationOrderAndReplacement(t *testing.T) {
-	root := cmd.New("root", "")
-	first := cmd.New("first", "")
-	second := cmd.New("second", "")
-	replacement := cmd.New("first", "replacement")
+	root := &cmd.Command{Name: "root"}
+	first := &cmd.Command{Name: "first"}
+	second := &cmd.Command{Name: "second"}
+	replacement := &cmd.Command{Name: "first", Docline: "replacement"}
 
 	first.Alias = append(first.Alias, "old-first")
 	replacement.Alias = append(replacement.Alias, "new-first")
@@ -192,10 +192,19 @@ func TestSubcommandRegistrationOrderAndReplacement(t *testing.T) {
 }
 
 func TestRegister(t *testing.T) {
-	root := cmd.New("root", "")
-	first := root.RegisterNewSub("first", "First command")
-	second := root.RegisterNewSub("second", "Second command")
-	replacement := root.RegisterNewSub("first", "Replacement command")
+	root := &cmd.Command{Name: "root"}
+	first := root.RegisterSub(&cmd.Command{
+		Name:    "first",
+		Docline: "First command",
+	})
+	second := root.RegisterSub(&cmd.Command{
+		Name:    "second",
+		Docline: "Second command",
+	})
+	replacement := root.RegisterSub(&cmd.Command{
+		Name:    "first",
+		Docline: "Replacement command",
+	})
 
 	assertDifferentCommands(t, first, replacement)
 	assertRegisteredCommands(t, root, replacement, second)
@@ -251,8 +260,8 @@ func TestSubcommandAliases(t *testing.T) {
 	var value string
 	var childRan bool
 
-	root := cmd.New("root", "")
-	child := cmd.New("child", "")
+	root := &cmd.Command{Name: "root"}
+	child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
 	child.FlagsParser().String("value", &value, "A value")
 	child.Runner = func() error {
 		childRan = true
@@ -280,10 +289,10 @@ func TestSubcommandAliases(t *testing.T) {
 
 func TestDispatchParsesSelectedCommand(t *testing.T) {
 	var parentName, childName string
-	root := cmd.New("root", "")
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
 	root.FlagsParser().String("name", &parentName, "Parent name")
 
-	child := cmd.New("child", "")
+	child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
 	child.FlagsParser().String("name", &childName, "Child name")
 	root.RegisterSub(child)
 
@@ -316,10 +325,10 @@ func assertDispatchNames(t *testing.T, parentName, childName, wantParent, wantCh
 
 func TestSubcommandNameAsFlagValue(t *testing.T) {
 	var rootName, childName string
-	root := cmd.New("root", "")
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
 	root.FlagsParser().String("name", &rootName, "Root name")
 
-	child := cmd.New("child", "")
+	child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
 	child.FlagsParser().String("name", &childName, "Child name")
 	root.RegisterSub(child)
 
@@ -336,10 +345,10 @@ func TestSubcommandNameAsFlagValue(t *testing.T) {
 
 func TestSubcommandNameAsSliceValue(t *testing.T) {
 	var values []string
-	root := cmd.New("root", "")
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
 	root.FlagsParser().StringSlice("values", &values, "Values")
 
-	child := cmd.New("child", "")
+	child := &cmd.Command{Name: "child"}
 	root.RegisterSub(child)
 
 	if err := root.Parse([]string{"--values", "child"}); err != nil {
@@ -352,11 +361,11 @@ func TestSubcommandNameAsSliceValue(t *testing.T) {
 
 func TestDispatchAfterSliceTerminator(t *testing.T) {
 	var values []string
-	root := cmd.New("root", "")
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
 	root.FlagsParser().StringSlice("values", &values, "Values")
 
 	var childSelected bool
-	child := cmd.New("child", "")
+	child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
 	child.FlagsParser().Bool("selected", &childSelected, "Selected")
 	root.RegisterSub(child)
 
@@ -372,10 +381,10 @@ func TestDispatchAfterSliceTerminator(t *testing.T) {
 }
 
 func TestFlagTerminatorPreventsSubcommandDispatch(t *testing.T) {
-	root := cmd.New("root", "")
+	root := &cmd.Command{Name: "root"}
 
 	var childSelected bool
-	child := cmd.New("child", "")
+	child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
 	child.FlagsParser().Bool("selected", &childSelected, "Selected")
 	root.RegisterSub(child)
 
@@ -390,11 +399,11 @@ func TestFlagTerminatorPreventsSubcommandDispatch(t *testing.T) {
 }
 
 func TestUnmatchedPositionalBeforeKnownSubcommand(t *testing.T) {
-	root := cmd.New("root", "")
+	root := &cmd.Command{Name: "root"}
 
 	var childSelected bool
-	child := cmd.New("child", "")
-	child.FlagsParser().Bool("selected", &childSelected, "Selected")
+	child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
+	child.Flags.Bool("selected", &childSelected, "Selected")
 	root.RegisterSub(child)
 
 	err := root.Parse([]string{"unknown", "child", "--selected"})
@@ -409,10 +418,10 @@ func TestUnmatchedPositionalBeforeKnownSubcommand(t *testing.T) {
 
 func TestDispatchNestedCommand(t *testing.T) {
 	var value string
-	root := cmd.New("root", "")
-	middle := cmd.New("middle", "")
-	leaf := cmd.New("leaf", "")
-	leaf.FlagsParser().String("value", &value, "A value")
+	root := &cmd.Command{Name: "root"}
+	middle := &cmd.Command{Name: "middle"}
+	leaf := &cmd.Command{Name: "leaf", Flags: flag.NewParser()}
+	leaf.Flags.String("value", &value, "A value")
 	middle.RegisterSub(leaf)
 	root.RegisterSub(middle)
 
@@ -433,9 +442,9 @@ func TestDispatchNestedCommand(t *testing.T) {
 
 func TestFlagArgumentIsParsedByCurrentCommand(t *testing.T) {
 	var mode string
-	root := cmd.New("root", "")
-	root.FlagsParser().String("mode", &mode, "Execution mode")
-	root.RegisterSub(cmd.New("run", ""))
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
+	root.Flags.String("mode", &mode, "Execution mode")
+	root.RegisterSub(&cmd.Command{Name: "run"})
 
 	if err := root.Parse([]string{"--mode", "fast"}); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
@@ -446,8 +455,8 @@ func TestFlagArgumentIsParsedByCurrentCommand(t *testing.T) {
 }
 
 func TestUnmatchedArgumentFallsBackToCurrentParser(t *testing.T) {
-	root := cmd.New("root", "")
-	root.RegisterSub(cmd.New("known", ""))
+	root := &cmd.Command{Name: "root"}
+	root.RegisterSub(&cmd.Command{Name: "known"})
 
 	err := root.Parse([]string{"unknown"})
 	if err == nil {
@@ -457,8 +466,8 @@ func TestUnmatchedArgumentFallsBackToCurrentParser(t *testing.T) {
 }
 
 func TestUnknownFlagInDispatchedCommandIncludesContext(t *testing.T) {
-	root := cmd.New("root", "")
-	root.RegisterSub(cmd.New("child", ""))
+	root := &cmd.Command{Name: "root"}
+	root.RegisterSub(&cmd.Command{Name: "child"})
 
 	err := root.Parse([]string{"child", "--unknown"})
 	if err == nil {
@@ -469,9 +478,9 @@ func TestUnknownFlagInDispatchedCommandIncludesContext(t *testing.T) {
 }
 
 func TestSubcommandsConflictWithPositionalArguments(t *testing.T) {
-	root := cmd.New("root", "")
-	root.FlagsParser().WithPositionalArguments()
-	root.RegisterSub(cmd.New("child", ""))
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
+	root.Flags.WithPositionalArguments()
+	root.RegisterSub(&cmd.Command{Name: "child"})
 
 	for _, arguments := range [][]string{nil, {"argument"}, {"child"}} {
 		err := root.Parse(arguments)
@@ -486,11 +495,11 @@ func TestExecuteDispatchesNestedCommandAndParsesParentFlags(t *testing.T) {
 	var name string
 	var leafRan bool
 
-	root := cmd.New("root", "")
-	root.FlagsParser().String("name", &name, "Name")
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
+	root.Flags.String("name", &name, "Name")
 
-	middle := cmd.New("middle", "")
-	leaf := cmd.New("leaf", "")
+	middle := &cmd.Command{Name: "middle"}
+	leaf := &cmd.Command{Name: "leaf"}
 	leaf.Runner = func() error {
 		leafRan = true
 		return nil
@@ -511,8 +520,8 @@ func TestExecuteDispatchesNestedCommandAndParsesParentFlags(t *testing.T) {
 
 func TestExecuteParseErrorDoesNotRunCommand(t *testing.T) {
 	var childRan bool
-	root := cmd.New("root", "")
-	child := cmd.New("child", "")
+	root := &cmd.Command{Name: "root"}
+	child := &cmd.Command{Name: "child"}
 	child.Runner = func() error {
 		childRan = true
 		return nil
@@ -529,7 +538,7 @@ func TestExecuteParseErrorDoesNotRunCommand(t *testing.T) {
 
 func TestExecuteReturnsRunnerError(t *testing.T) {
 	want := errors.New("runner failed")
-	root := cmd.New("root", "")
+	root := &cmd.Command{Name: "root"}
 	root.Runner = func() error {
 		return want
 	}
@@ -540,7 +549,7 @@ func TestExecuteReturnsRunnerError(t *testing.T) {
 }
 
 func TestExecuteRequiresRunner(t *testing.T) {
-	root := cmd.New("root", "")
+	root := &cmd.Command{Name: "root"}
 
 	err := root.Execute(nil)
 	if err == nil {
@@ -551,7 +560,7 @@ func TestExecuteRequiresRunner(t *testing.T) {
 
 func TestParseDoesNotRunCommand(t *testing.T) {
 	var runnerCalled bool
-	root := cmd.New("root", "")
+	root := &cmd.Command{Name: "root"}
 	root.Runner = func() error {
 		runnerCalled = true
 		return nil
