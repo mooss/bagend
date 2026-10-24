@@ -187,6 +187,13 @@ func (par *Parser) processArguments(
 	return nil, false, nil
 }
 
+// EnforceDefaults sets the default values of all flags if they are empty.
+func (par *Parser) EnforceDefaults() {
+	for _, flg := range par.canonical {
+		flg.enforceDefault()
+	}
+}
+
 // finalizeParse handles the help page and enforce default values.
 func (par *Parser) finalizeParse() error {
 	if par.printHelp {
@@ -201,9 +208,7 @@ func (par *Parser) finalizeParse() error {
 		os.Exit(0)
 	}
 
-	for _, flg := range par.canonical {
-		flg.enforceDefault()
-	}
+	par.EnforceDefaults()
 
 	return nil
 }

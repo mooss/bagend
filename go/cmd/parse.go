@@ -38,6 +38,7 @@ func (c *Command) parse(arguments []string, path []string) (*Command, error) {
 	}
 
 	if sub, rest := c.findSub(arguments); sub != nil {
+		c.Flags.EnforceDefaults()
 		return sub.parse(rest, path)
 	}
 
@@ -67,6 +68,7 @@ func (c *Command) parseArguments(arguments []string, path []string) (*Command, e
 			err := fmt.Errorf("invalid subcommand %q", rest[0])
 			return nil, errs.Wrapf(err, "command %s", strings.Join(path, " "))
 		}
+		c.Flags.EnforceDefaults()
 		return sub.parse(rest[1:], path)
 	}
 
