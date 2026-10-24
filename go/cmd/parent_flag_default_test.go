@@ -1,0 +1,190 @@
+package cmd_test
+
+import (
+	"testing"
+
+	"github.com/mooss/bagend/go/cmd"
+	"github.com/mooss/bagend/go/flag"
+)
+
+func TestParentFlagDefaultsBeforeSubcommandAreValid(t *testing.T) {
+	t.Run("string default retained", testParentStringDefaultRetained)
+	t.Run("bool default retained", testParentBoolDefaultRetained)
+	t.Run("slice default retained", testParentSliceDefaultRetained)
+	t.Run("override default before subcommand", testParentDefaultOverrideBeforeSubcommand)
+	t.Run("defaults retained for nested subcommand", testParentDefaultsRetainedForNested)
+	t.Run("defaults visible to runner via Execute", testParentDefaultsVisibleToRunner)
+	t.Run("child defaults unaffected by parent", testChildDefaultsUnaffectedByParent)
+	t.Run("parent defaults survive repeated parses", testParentDefaultsSurviveRepeatedParses)
+}
+
+func testParentStringDefaultRetained(t *testing.T) {
+	parentName := "default-parent"
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
+	root.FlagsParser().String("name", &parentName, "Parent name")
+	root.RegisterSub(&cmd.Command{Name: "child"})
+
+	if err := root.Parse([]string{"child"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if parentName != "default-parent" {
+		t.Fatalf("parent name = %q, want default %q", parentName, "default-parent")
+	}
+}
+
+func testParentBoolDefaultRetained(t *testing.T) {
+	verbose := true
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
+	root.FlagsParser().Bool("verbose", &verbose, "Verbose output")
+	root.RegisterSub(&cmd.Command{Name: "child"})
+
+	if err := root.Parse([]string{"child"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if !verbose {
+		t.Fatal("parent verbose = false, want default true")
+	}
+}
+
+func testParentSliceDefaultRetained(t *testing.T) {
+	values := []string{"default-value"}
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
+	root.FlagsParser().StringSlice("values", &values, "Values")
+	root.RegisterSub(&cmd.Command{Name: "child"})
+
+	if err := root.Parse([]string{"child"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if len(values) != 1 || values[0] != "default-value" {
+		t.Fatalf("parent values = %v, want [default-value]", values)
+	}
+}
+
+func testParentDefaultOverrideBeforeSubcommand(t *testing.T) {
+	parentName := "default-parent"
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
+	root.FlagsParser().String("name", &parentName, "Parent name")
+	child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
+	var childName = "default-child"
+	child.FlagsParser().String("name", &childName, "Child name")
+	root.RegisterSub(child)
+
+	if err := root.Parse([]string{"--name", "overridden", "child"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if parentName != "overridden" {
+		t.Fatalf("parent name = %q, want %q", parentName, "overridden")
+	}
+	if childName != "default-child" {
+		t.Fatalf("child name = %q, want default %q", childName, "default-child")
+	}
+
+	parentName = "default-parent"
+	childName = "default-child"
+	if err := root.Parse([]string{"--name", "overridden", "child", "--name", "kid"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	assertDispatchNames(t, parentName, childName, "overridden", "kid")
+}
+
+func testParentDefaultsRetainedForNested(t *testing.T) {
+	parentName := "default-parent"
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
+	root.FlagsParser().String("name", &parentName, "Parent name")
+	middle := &cmd.Command{Name: "middle"}
+	leaf := &cmd.Command{Name: "leaf"}
+	middle.RegisterSub(leaf)
+	root.RegisterSub(middle)
+
+	if err := root.Parse([]string{"middle", "leaf"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if parentName != "default-parent" {
+		t.Fatalf("parent name = %q, want default %q", parentName, "default-parent")
+	}
+
+	parentName = "custom"
+	if err := root.Parse([]string{"--name", "custom", "middle", "leaf"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if parentName != "custom" {
+		t.Fatalf("parent name = %q, want %q", parentName, "custom")
+	}
+}
+
+func testParentDefaultsVisibleToRunner(t *testing.T) {
+	parentName := "default-parent"
+	var observed string
+	var leafRan bool
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
+	root.FlagsParser().String("name", &parentName, "Parent name")
+	middle := &cmd.Command{Name: "middle"}
+	leaf := &cmd.Command{Name: "leaf"}
+	leaf.Runner = func() error {
+		observed = parentName
+		leafRan = true
+		return nil
+	}
+	middle.RegisterSub(leaf)
+	root.RegisterSub(middle)
+
+	if err := root.Execute([]string{"middle", "leaf"}); err != nil {
+		t.Fatalf("Execute() returned an error: %v", err)
+	}
+	if !leafRan {
+		t.Fatal("leaf runner was not called")
+	}
+	if observed != "default-parent" {
+		t.Fatalf("runner observed parent name = %q, want default %q", observed, "default-parent")
+	}
+
+	leafRan = false
+	if err := root.Execute([]string{"--name", "Jack", "middle", "leaf"}); err != nil {
+		t.Fatalf("Execute() returned an error: %v", err)
+	}
+	if observed != "Jack" {
+		t.Fatalf("runner observed parent name = %q, want %q", observed, "Jack")
+	}
+}
+
+func testChildDefaultsUnaffectedByParent(t *testing.T) {
+	var parentName string
+	childName := "default-child"
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
+	root.FlagsParser().String("name", &parentName, "Parent name")
+	child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
+	child.FlagsParser().String("name", &childName, "Child name")
+	root.RegisterSub(child)
+
+	if err := root.Parse([]string{"--name", "parent-value", "child"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if parentName != "parent-value" {
+		t.Fatalf("parent name = %q, want %q", parentName, "parent-value")
+	}
+	if childName != "default-child" {
+		t.Fatalf("child name = %q, want default %q", childName, "default-child")
+	}
+}
+
+func testParentDefaultsSurviveRepeatedParses(t *testing.T) {
+	parentName := "default-parent"
+	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
+	root.FlagsParser().String("name", &parentName, "Parent name")
+	root.RegisterSub(&cmd.Command{Name: "child"})
+
+	if err := root.Parse([]string{"--name", "first", "child"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if parentName != "first" {
+		t.Fatalf("parent name = %q, want %q", parentName, "first")
+	}
+
+	parentName = "default-parent"
+	if err := root.Parse([]string{"child"}); err != nil {
+		t.Fatalf("Parse() returned an error: %v", err)
+	}
+	if parentName != "default-parent" {
+		t.Fatalf("parent name = %q, want default %q after re-parse", parentName, "default-parent")
+	}
+}
