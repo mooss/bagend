@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"encoding/json/jsontext"
 	jsonv2 "encoding/json/v2"
 	"errors"
 	"log"
@@ -11,9 +12,23 @@ import (
 /////////////
 // To JSON //
 
-// ToJSON marshalls arbitrary data to JSON.
-func ToJSON[T any](source T) ([]byte, error) {
+// ToRawJSON marshalls arbitrary data to raw JSON.
+func ToRawJSON[T any](source T) ([]byte, error) {
 	return jsonv2.Marshal(source)
+}
+
+// ToIndentedJSON marshalls arbitrary data to indented JSON.
+func ToIndentedJSON[T any](source T) ([]byte, error) {
+	res, err := jsonv2.Marshal(
+		source, jsontext.AllowDuplicateNames(true), jsontext.AllowInvalidUTF8(true),
+		jsontext.PreserveRawStrings(true), jsontext.Multiline(true),
+		jsontext.WithIndent("  "),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 ///////////////
