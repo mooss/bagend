@@ -54,18 +54,19 @@ func (par *Parser) SetHelpPage(helpPage func() string) {
 // Parse parses the given arguments.
 // It may only be called once.
 func (par *Parser) Parse(arguments []string) error {
-	if par.parseCalled {
-		return errors.New("parser may only be parsed once")
-	}
-	par.parseCalled = true
-
 	_, _, err := par.ParseUntil(arguments, nil)
 	return err
 }
 
 // ParseUntil parses arguments until stop matches a positional argument, if any.
 // It returns the unconsumed arguments and whether parsing stopped early.
+// It may only be called once.
 func (par *Parser) ParseUntil(arguments []string, stop func(string) bool) ([]string, bool, error) {
+	if par.parseCalled {
+		return nil, false, errors.New("parser may only be parsed once")
+	}
+	par.parseCalled = true
+
 	expanded, err := par.validateAndExpand()
 	if err != nil {
 		return nil, false, err

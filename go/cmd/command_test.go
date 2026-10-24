@@ -258,13 +258,11 @@ func assertCommandsParse(t *testing.T, root *cmd.Command, names ...string) {
 
 func TestSubcommandAliases(t *testing.T) {
 	var value string
-	var childRan bool
 
 	root := &cmd.Command{Name: "root"}
 	child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
 	child.FlagsParser().String("value", &value, "A value")
 	child.Runner = func() error {
-		childRan = true
 		return nil
 	}
 	child.Aliases = append(child.Aliases, "c")
@@ -279,7 +277,20 @@ func TestSubcommandAliases(t *testing.T) {
 	if value != "alias" {
 		t.Fatalf("parsed value = %q, want %q", value, "alias")
 	}
-	if err := root.Execute([]string{"c"}); err != nil {
+
+	var childRan bool
+	execRoot := &cmd.Command{Name: "root"}
+	execChild := &cmd.Command{Name: "child", Flags: flag.NewParser()}
+	var execValue string
+	execChild.FlagsParser().String("value", &execValue, "A value")
+	execChild.Runner = func() error {
+		childRan = true
+		return nil
+	}
+	execChild.Aliases = append(execChild.Aliases, "c")
+	execRoot.RegisterSub(execChild)
+
+	if err := execRoot.Execute([]string{"c"}); err != nil {
 		t.Fatalf("Execute() with alias returned an error: %v", err)
 	}
 	if !childRan {
@@ -288,28 +299,34 @@ func TestSubcommandAliases(t *testing.T) {
 }
 
 func TestDispatchParsesSelectedCommand(t *testing.T) {
-	var parentName, childName string
-	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
-	root.FlagsParser().String("name", &parentName, "Parent name")
+	newTree := func() (*cmd.Command, *string, *string) {
+		var parentName, childName string
+		root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
+		root.FlagsParser().String("name", &parentName, "Parent name")
 
-	child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
-	child.FlagsParser().String("name", &childName, "Child name")
-	root.RegisterSub(child)
+		child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
+		child.FlagsParser().String("name", &childName, "Child name")
+		root.RegisterSub(child)
+		return root, &parentName, &childName
+	}
 
+	root, parentName, childName := newTree()
 	if err := root.Parse([]string{"child", "--name", "Locke"}); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
 	}
-	assertDispatchNames(t, parentName, childName, "", "Locke")
+	assertDispatchNames(t, *parentName, *childName, "", "Locke")
 
+	root, parentName, childName = newTree()
 	if err := root.Parse([]string{"--name", "Sawyer"}); err != nil {
 		t.Fatalf("Parse() returned an error for the root command: %v", err)
 	}
-	assertDispatchNames(t, parentName, childName, "Sawyer", "Locke")
+	assertDispatchNames(t, *parentName, *childName, "Sawyer", "")
 
+	root, parentName, childName = newTree()
 	if err := root.Parse([]string{"--name", "Jack", "child", "--name", "Kate"}); err != nil {
 		t.Fatalf("Parse() returned an error for both commands: %v", err)
 	}
-	assertDispatchNames(t, parentName, childName, "Jack", "Kate")
+	assertDispatchNames(t, *parentName, *childName, "Jack", "Kate")
 }
 
 func assertDispatchNames(t *testing.T, parentName, childName, wantParent, wantChild string) {

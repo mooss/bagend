@@ -155,29 +155,32 @@ func testParentSliceReplacementVisibleToRunner(t *testing.T) {
 }
 
 func testParentSliceChildUnaffectedByParentReplacement(t *testing.T) {
-	var parentValues []string
-	var childValues []string
-	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
-	root.FlagsParser().StringSlice("values", &parentValues, "Parent values").
-		Default([]string{"parent-default"})
-	child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
-	child.FlagsParser().StringSlice("values", &childValues, "Child values").
-		Default([]string{"child-default"})
-	root.RegisterSub(child)
+	setup := func() (*cmd.Command, *[]string, *[]string) {
+		var parentValues []string
+		var childValues []string
+		root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
+		root.FlagsParser().StringSlice("values", &parentValues, "Parent values").
+			Default([]string{"parent-default"})
+		child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
+		child.FlagsParser().StringSlice("values", &childValues, "Child values").
+			Default([]string{"child-default"})
+		root.RegisterSub(child)
+		return root, &parentValues, &childValues
+	}
 
+	root, parentValues, childValues := setup()
 	if err := root.Parse([]string{"--values", "parent-actual", "--", "child"}); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
 	}
-	assertSliceExactly(t, parentValues, []string{"parent-actual"})
-	assertSliceExactly(t, childValues, []string{"child-default"})
+	assertSliceExactly(t, *parentValues, []string{"parent-actual"})
+	assertSliceExactly(t, *childValues, []string{"child-default"})
 
-	parentValues = nil
-	childValues = nil
-	if err := root.Parse([]string{"--values", "parent-actual", "--", "child", "--values", "child-actual"}); err != nil {
+	root2, parentValues2, childValues2 := setup()
+	if err := root2.Parse([]string{"--values", "parent-actual", "--", "child", "--values", "child-actual"}); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
 	}
-	assertSliceExactly(t, parentValues, []string{"parent-actual"})
-	assertSliceExactly(t, childValues, []string{"child-actual"})
+	assertSliceExactly(t, *parentValues2, []string{"parent-actual"})
+	assertSliceExactly(t, *childValues2, []string{"child-actual"})
 }
 
 func testParentSliceRetainedWhenChildSuppliesSlice(t *testing.T) {
