@@ -8,6 +8,17 @@ import (
 	"github.com/mooss/bagend/go/fun"
 )
 
+/////////////
+// To JSON //
+
+// ToJSON marshalls arbitrary data to JSON.
+func ToJSON[T any](source T) ([]byte, error) {
+	return jsonv2.Marshal(source)
+}
+
+///////////////
+// From JSON //
+
 // UnknownFieldBehavior is implemented by the types that select how FromJSONOpt handles unknown JSON
 // object members.
 type UnknownFieldBehavior interface {
