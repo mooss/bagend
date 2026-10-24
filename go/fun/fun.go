@@ -9,7 +9,7 @@ func Identity[T any](arg T) T { return arg }
 ////////////////////
 // Zero functions //
 
-// Coalesce returns its the first non-zero value.
+// Coalesce returns its first non-zero value.
 func Coalesce[T any](first T, rest ...T) T {
 	if !IsZero(first) {
 		return first
