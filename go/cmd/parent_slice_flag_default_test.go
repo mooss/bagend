@@ -8,21 +8,54 @@ import (
 )
 
 func TestParentSliceDefaultCompletelyReplacedNotExtended(t *testing.T) {
-	t.Run("single value replaces single default", testParentSliceSingleValueReplacesDefault)
-	t.Run("repeated flag replaces single default", testParentSliceRepeatedFlagReplacesDefault)
-	t.Run("single value replaces multiple defaults", testParentSliceSingleValueReplacesMultipleDefaults)
-	t.Run("multiple values replace multiple defaults", testParentSliceMultipleValuesReplaceMultipleDefaults)
-	t.Run("replacement before nested subcommand", testParentSliceReplacementBeforeNestedSubcommand)
-	t.Run("replacement visible to runner via Execute", testParentSliceReplacementVisibleToRunner)
-	t.Run("child slice unaffected by parent replacement", testParentSliceChildUnaffectedByParentReplacement)
-	t.Run("parent default retained when only child supplies slice", testParentSliceRetainedWhenChildSuppliesSlice)
-	t.Run("default slice not mutated across parses", testParentSliceDefaultSliceNotMutated)
+	t.Run(
+		"single value replaces single default",
+		testParentSliceSingleValueReplacesDefault,
+	)
+	t.Run(
+		"repeated flag replaces single default",
+		testParentSliceRepeatedFlagReplacesDefault,
+	)
+	t.Run(
+		"single value replaces multiple defaults",
+		testParentSliceSingleValueReplacesMultipleDefaults,
+	)
+	t.Run(
+		"multiple values replace multiple defaults",
+		testParentSliceMultipleValuesReplaceMultipleDefaults,
+	)
+	t.Run(
+		"replacement before nested subcommand",
+		testParentSliceReplacementBeforeNestedSubcommand,
+	)
+	t.Run(
+		"replacement visible to runner via Execute",
+		testParentSliceReplacementVisibleToRunner,
+	)
+	t.Run(
+		"child slice unaffected by parent replacement",
+		testParentSliceChildUnaffectedByParentReplacement,
+	)
+	t.Run(
+		"parent default retained when only child supplies slice",
+		testParentSliceRetainedWhenChildSuppliesSlice,
+	)
+	t.Run(
+		"default slice not mutated across parses",
+		testParentSliceDefaultSliceNotMutated,
+	)
 }
 
 func assertSliceExactly(t *testing.T, got []string, want []string) {
 	t.Helper()
 	if len(got) != len(want) {
-		t.Fatalf("slice = %v (len %d), want %v (len %d): default was extended instead of replaced", got, len(got), want, len(want))
+		t.Fatalf(
+			"slice = %v (len %d), want %v (len %d): default was extended instead of replaced",
+			got,
+			len(got),
+			want,
+			len(want),
+		)
 	}
 	for i := range want {
 		if got[i] != want[i] {
@@ -73,7 +106,8 @@ func testParentSliceMultipleValuesReplaceMultipleDefaults(t *testing.T) {
 	root.FlagsParser().StringSlice("values", &values, "Values").Default([]string{"d1", "d2"})
 	root.RegisterSub(&cmd.Command{Name: "child"})
 
-	if err := root.Parse([]string{"--values", "a", "--values", "b", "--values", "c", "--",  "child"}); err != nil {
+	args := []string{"--values", "a", "--values", "b", "--values", "c", "--", "child"}
+	if err := root.Parse(args); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
 	}
 	assertSliceExactly(t, values, []string{"a", "b", "c"})
@@ -101,7 +135,8 @@ func testParentSliceReplacementBeforeNestedSubcommand(t *testing.T) {
 	middle2.RegisterSub(leaf2)
 	root2.RegisterSub(middle2)
 
-	if err := root2.Parse([]string{"--values", "x", "--values", "y", "--", "middle", "leaf"}); err != nil {
+	args2 := []string{"--values", "x", "--values", "y", "--", "middle", "leaf"}
+	if err := root2.Parse(args2); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
 	}
 	assertSliceExactly(t, values2, []string{"x", "y"})
@@ -176,7 +211,10 @@ func testParentSliceChildUnaffectedByParentReplacement(t *testing.T) {
 	assertSliceExactly(t, *childValues, []string{"child-default"})
 
 	root2, parentValues2, childValues2 := setup()
-	if err := root2.Parse([]string{"--values", "parent-actual", "--", "child", "--values", "child-actual"}); err != nil {
+	args2 := []string{
+		"--values", "parent-actual", "--", "child", "--values", "child-actual",
+	}
+	if err := root2.Parse(args2); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
 	}
 	assertSliceExactly(t, *parentValues2, []string{"parent-actual"})
@@ -187,9 +225,11 @@ func testParentSliceRetainedWhenChildSuppliesSlice(t *testing.T) {
 	var parentValues []string
 	var childValues []string
 	root := &cmd.Command{Name: "root", Flags: flag.NewParser()}
-	root.FlagsParser().StringSlice("values", &parentValues, "Parent values").Default([]string{"parent-default"})
+	root.FlagsParser().StringSlice("values", &parentValues, "Parent values").
+		Default([]string{"parent-default"})
 	child := &cmd.Command{Name: "child", Flags: flag.NewParser()}
-	child.FlagsParser().StringSlice("values", &childValues, "Child values").Default([]string{"child-default"})
+	child.FlagsParser().StringSlice("values", &childValues, "Child values").
+		Default([]string{"child-default"})
 	root.RegisterSub(child)
 
 	if err := root.Parse([]string{"child", "--values", "child-actual"}); err != nil {
@@ -208,7 +248,8 @@ func testParentSliceDefaultSliceNotMutated(t *testing.T) {
 	root.FlagsParser().StringSlice("values", &values, "Values").Default(def)
 	root.RegisterSub(&cmd.Command{Name: "child"})
 
-	if err := root.Parse([]string{"--values", "actual", "--",  "child"}); err != nil {
+	args := []string{"--values", "actual", "--", "child"}
+	if err := root.Parse(args); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
 	}
 	assertSliceExactly(t, values, []string{"actual"})

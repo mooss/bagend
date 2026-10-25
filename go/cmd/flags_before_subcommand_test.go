@@ -16,7 +16,10 @@ func TestParentFlagsBeforeSubcommandAreTakenIntoAccount(t *testing.T) {
 	t.Run("parent flags before nested subcommand", testParentFlagsBeforeNestedSubcommand)
 	t.Run("parent flags via Execute dispatches child", testParentFlagsBeforeSubcommandViaExecute)
 	t.Run("parent flags before alias", testParentFlagsBeforeAlias)
-	t.Run("parent flag after subcommand belongs to child", testParentFlagAfterSubcommandBelongsToChild)
+	t.Run(
+		"parent flag after subcommand belongs to child",
+		testParentFlagAfterSubcommandBelongsToChild,
+	)
 }
 
 func testParentStringFlagBeforeSubcommand(t *testing.T) {
@@ -62,7 +65,8 @@ func testParentMultipleFlagsBeforeSubcommand(t *testing.T) {
 	root.FlagsParser().Bool("verbose", &verbose, "Verbose")
 	root.RegisterSub(&cmd.Command{Name: "child"})
 
-	if err := root.Parse([]string{"--name", "Jack", "--mode", "fast", "--verbose", "child"}); err != nil {
+	args := []string{"--name", "Jack", "--mode", "fast", "--verbose", "child"}
+	if err := root.Parse(args); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
 	}
 	if name != "Jack" {
@@ -97,7 +101,8 @@ func testParentSliceFlagBeforeSubcommand(t *testing.T) {
 	child := &cmd.Command{Name: "child"}
 	root.RegisterSub(child)
 
-	if err := root.Parse([]string{"--values", "one", "--values", "two", "--", "child"}); err != nil {
+	args := []string{"--values", "one", "--values", "two", "--", "child"}
+	if err := root.Parse(args); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
 	}
 	if len(values) != 2 || values[0] != "one" || values[1] != "two" {
@@ -116,7 +121,8 @@ func testParentFlagsBeforeNestedSubcommand(t *testing.T) {
 	middle.RegisterSub(leaf)
 	root.RegisterSub(middle)
 
-	if err := root.Parse([]string{"--name", "Locke", "middle", "leaf", "--value", "nested"}); err != nil {
+	args := []string{"--name", "Locke", "middle", "leaf", "--value", "nested"}
+	if err := root.Parse(args); err != nil {
 		t.Fatalf("Parse() returned an error: %v", err)
 	}
 	if name != "Locke" {
