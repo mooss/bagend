@@ -1,12 +1,139 @@
-//revive:disable:cognitive-complexity,cyclomatic
+//revive:disable:cognitive-complexity,cyclomatic,function-length
 package lie_test
 
 import (
 	"errors"
+	"iter"
 	"testing"
 
 	"github.com/mooss/bagend/go/fun/eager/lie"
 )
+
+func TestCollect2(t *testing.T) {
+	t.Run("collects all elements in order", func(t *testing.T) {
+		source := iter.Seq2[int, error](func(yield func(int, error) bool) {
+			for _, v := range []int{1, 2, 3} {
+				if !yield(v, nil) {
+					return
+				}
+			}
+		})
+
+		result, err := lie.CollectE(source)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		expected := []int{1, 2, 3}
+		if len(result) != len(expected) {
+			t.Fatalf("expected length %d, got %d", len(expected), len(result))
+		}
+		for i := range expected {
+			if result[i] != expected[i] {
+				t.Errorf("at index %d: expected %d, got %d", i, expected[i], result[i])
+			}
+		}
+	})
+
+	t.Run("supports arbitrary element types", func(t *testing.T) {
+		source := iter.Seq2[string, error](func(yield func(string, error) bool) {
+			for _, v := range []string{"a", "b"} {
+				if !yield(v, nil) {
+					return
+				}
+			}
+		})
+
+		result, err := lie.CollectE(source)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		expected := []string{"a", "b"}
+		if len(result) != len(expected) {
+			t.Fatalf("expected length %d, got %d", len(expected), len(result))
+		}
+		for i := range expected {
+			if result[i] != expected[i] {
+				t.Errorf("at index %d: expected %q, got %q", i, expected[i], result[i])
+			}
+		}
+	})
+
+	t.Run("empty iterator returns empty without error", func(t *testing.T) {
+		source := iter.Seq2[int, error](func(_ func(int, error) bool) {})
+
+		result, err := lie.CollectE(source)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if len(result) != 0 {
+			t.Fatalf("expected empty result, got %v", result)
+		}
+	})
+
+	t.Run("returns first error", func(t *testing.T) {
+		wantErr := errors.New("collect failed")
+		source := iter.Seq2[int, error](func(yield func(int, error) bool) {
+			if !yield(1, nil) {
+				return
+			}
+			if !yield(0, wantErr) {
+				return
+			}
+			if !yield(3, nil) {
+				return
+			}
+		})
+
+		result, err := lie.CollectE(source)
+		if !errors.Is(err, wantErr) {
+			t.Fatalf("expected error %v, got %v", wantErr, err)
+		}
+		if result != nil {
+			t.Fatalf("expected nil result on error, got %v", result)
+		}
+	})
+
+	t.Run("stops at first error without consuming rest", func(t *testing.T) {
+		wantErr := errors.New("boom")
+		yieldedAfterErr := false
+		source := iter.Seq2[int, error](func(yield func(int, error) bool) {
+			if !yield(1, nil) {
+				return
+			}
+			if !yield(2, wantErr) {
+				return
+			}
+			yieldedAfterErr = true
+			yield(3, nil)
+		})
+
+		result, err := lie.CollectE(source)
+		if !errors.Is(err, wantErr) {
+			t.Fatalf("expected error %v, got %v", wantErr, err)
+		}
+		if result != nil {
+			t.Fatalf("expected nil result on error, got %v", result)
+		}
+		if yieldedAfterErr {
+			t.Error("expected iteration to stop at first error")
+		}
+	})
+
+	t.Run("error on first element returns nil", func(t *testing.T) {
+		wantErr := errors.New("immediate failure")
+		source := iter.Seq2[int, error](func(yield func(int, error) bool) {
+			yield(0, wantErr)
+		})
+
+		result, err := lie.CollectE(source)
+		if !errors.Is(err, wantErr) {
+			t.Fatalf("expected error %v, got %v", wantErr, err)
+		}
+		if result != nil {
+			t.Fatalf("expected nil result on error, got %v", result)
+		}
+	})
+}
 
 func TestEnsureFinal(t *testing.T) {
 	tests := []struct {
