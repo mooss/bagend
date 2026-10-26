@@ -27,7 +27,7 @@ func assertMapEqual[K comparable, V comparable](t *testing.T, got, want map[K]V)
 
 func TestMap(t *testing.T) {
 	t.Run("maps values and preserves keys", func(t *testing.T) {
-		result := Map(func(value int) string {
+		result := MapV(func(value int) string {
 			return string(rune('a' + value))
 		}, map[string]int{"first": 0, "second": 1})
 
@@ -37,7 +37,7 @@ func TestMap(t *testing.T) {
 	t.Run("empty and nil inputs", func(t *testing.T) {
 		for _, input := range []map[string]int{{}, nil} {
 			calls := 0
-			result := Map(func(value int) int {
+			result := MapV(func(value int) int {
 				calls++
 				return value * 2
 			}, input)
@@ -54,7 +54,7 @@ func TestMap(t *testing.T) {
 
 func TestMapE(t *testing.T) {
 	t.Run("maps values and preserves keys", func(t *testing.T) {
-		result, err := MapE(func(value int) (string, error) {
+		result, err := MapVE(func(value int) (string, error) {
 			return string(rune('a' + value)), nil
 		}, map[string]int{"first": 0, "second": 1})
 		if err != nil {
@@ -67,7 +67,7 @@ func TestMapE(t *testing.T) {
 	t.Run("empty and nil inputs", func(t *testing.T) {
 		for _, input := range []map[string]int{{}, nil} {
 			calls := 0
-			result, err := MapE(func(value int) (int, error) {
+			result, err := MapVE(func(value int) (int, error) {
 				calls++
 				return value, nil
 			}, input)
@@ -88,7 +88,7 @@ func TestMapE(t *testing.T) {
 		wantErr := errors.New("mapping failed")
 		calls := 0
 
-		result, err := MapE(func(value int) (int, error) {
+		result, err := MapVE(func(value int) (int, error) {
 			calls++
 			if calls == 1 {
 				return 0, wantErr
@@ -110,7 +110,7 @@ func TestMapE(t *testing.T) {
 
 func TestMapFilter(t *testing.T) {
 	t.Run("filters nil results and preserves keys", func(t *testing.T) {
-		result := MapFilter(func(value int) *string {
+		result := MapVFilter(func(value int) *string {
 			if value%2 != 0 {
 				return nil
 			}
@@ -122,7 +122,7 @@ func TestMapFilter(t *testing.T) {
 	})
 
 	t.Run("all results nil", func(t *testing.T) {
-		result := MapFilter(func(int) *string { return nil }, map[string]int{"one": 1})
+		result := MapVFilter(func(int) *string { return nil }, map[string]int{"one": 1})
 		if len(result) != 0 {
 			t.Errorf("expected empty result, got %v", result)
 		}
@@ -131,7 +131,7 @@ func TestMapFilter(t *testing.T) {
 	t.Run("empty and nil inputs", func(t *testing.T) {
 		for _, input := range []map[string]int{{}, nil} {
 			calls := 0
-			result := MapFilter(func(value int) *int {
+			result := MapVFilter(func(value int) *int {
 				calls++
 				return &value
 			}, input)
