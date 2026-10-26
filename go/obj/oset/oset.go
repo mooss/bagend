@@ -33,54 +33,75 @@ func NewI[T comparable](source iter.Seq[T]) Set[T] {
 // Mutating methods //
 
 // Add adds elements to the set and returns the set.
-func (s Set[T]) Add(el ...T) Set[T] {
+func (set Set[T]) Add(el ...T) Set[T] {
 	for _, e := range el {
-		if _, ok := s[e]; !ok {
-			s[e] = struct{}{}
+		if _, ok := set[e]; !ok {
+			set[e] = struct{}{}
 		}
 	}
-	return s
+	return set
+}
+
+// AddUniq returns a lazy sequence of the elements in seq that are not already present in the set.
+//
+// As the returned sequence is consumed, each element from seq that is not already in the set is
+// added and then yielded.
+// Elements already present are skipped.
+//
+// No elements are added until iteration begins, and if iteration stops early, the remainder of seq
+// is neither added nor yielded.
+func (set Set[T]) AddUniq(seq iter.Seq[T]) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for el := range seq {
+			if _, present := set[el]; !present {
+				set[el] = struct{}{}
+				if !yield(el) {
+					return
+				}
+			}
+		}
+	}
 }
 
 // Remove removes elements from the set and returns the set.
-func (s Set[T]) Remove(el ...T) Set[T] {
+func (set Set[T]) Remove(el ...T) Set[T] {
 	for _, e := range el {
-		delete(s, e)
+		delete(set, e)
 	}
-	return s
+	return set
 }
 
 // Difference removes elements found in seq from the set and returns the set.
-func (s Set[T]) Difference(seq iter.Seq[T]) Set[T] {
-	if s.Empty() {
-		return s
+func (set Set[T]) Difference(seq iter.Seq[T]) Set[T] {
+	if set.Empty() {
+		return set
 	}
 
 	for el := range seq {
-		delete(s, el)
+		delete(set, el)
 	}
 
-	return s
+	return set
 }
 
 // Intersect keeps only elements found in seq and returns the set.
 // If seq is nil, it clears the set.
-func (s Set[T]) Intersect(seq iter.Seq[T]) Set[T] {
-	if s.Empty() {
-		return s
+func (set Set[T]) Intersect(seq iter.Seq[T]) Set[T] {
+	if set.Empty() {
+		return set
 	}
 	if seq == nil {
-		clear(s)
-		return s
+		clear(set)
+		return set
 	}
 
 	keep := NewI(seq)
-	for e := range s {
+	for e := range set {
 		if _, ok := keep[e]; !ok {
-			delete(s, e)
+			delete(set, e)
 		}
 	}
-	return s
+	return set
 }
 
 ///////////////////////
@@ -88,27 +109,27 @@ func (s Set[T]) Intersect(seq iter.Seq[T]) Set[T] {
 
 // Keys returns an iterator over the elements of the set.
 // Iteration order is unspecified.
-func (s Set[T]) Keys() iter.Seq[T] { return maps.Keys(s) }
+func (set Set[T]) Keys() iter.Seq[T] { return maps.Keys(set) }
 
 ///////////////////
 // Other methods //
 
 // Contains reports whether el is in the set.
-func (s Set[T]) Contains(el T) bool {
-	_, ok := s[el]
+func (set Set[T]) Contains(el T) bool {
+	_, ok := set[el]
 	return ok
 }
 
 // Empty reports whether the set is empty.
-func (s Set[T]) Empty() bool { return len(s) == 0 }
+func (set Set[T]) Empty() bool { return len(set) == 0 }
 
 // IntersectsWith reports whether the set and seq share any element.
-func (s Set[T]) IntersectsWith(seq iter.Seq[T]) bool {
-	if seq == nil || s.Empty() {
+func (set Set[T]) IntersectsWith(seq iter.Seq[T]) bool {
+	if seq == nil || set.Empty() {
 		return false
 	}
 	for e := range seq {
-		if _, ok := s[e]; ok {
+		if _, ok := set[e]; ok {
 			return true
 		}
 	}
@@ -116,4 +137,4 @@ func (s Set[T]) IntersectsWith(seq iter.Seq[T]) bool {
 }
 
 // Len returns the number of elements in the set.
-func (s Set[T]) Len() int { return len(s) }
+func (set Set[T]) Len() int { return len(set) }
