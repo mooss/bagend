@@ -13,11 +13,11 @@ func Empty[T comparable]() Set[T] { return make(Set[T]) }
 
 // New returns a Set containing the given elements.
 func New[T comparable](elements ...T) Set[T] {
-	s := Empty[T]()
+	res := make(Set[T], len(elements))
 	for _, el := range elements {
-		s[el] = struct{}{}
+		res[el] = struct{}{}
 	}
-	return s
+	return res
 }
 
 // NewI returns a Set containing the elements yielded by source.
