@@ -15,11 +15,33 @@ func Resolve(path string) (string, error) {
 		return "", err
 	}
 
-	resolved, err := filepath.EvalSymlinks(filepath.Clean(absolute))
+	resolved, err := filepath.EvalSymlinks(absolute)
 	if err != nil {
 		return "", err
 	}
-	return filepath.Clean(resolved), nil
+	return resolved, nil
+}
+
+// ResolveRel returns the cleaned path with symbolic links relative to the working directory.
+// It returns an error if the path cannot be made absolute or if the working dir cannot be deduced
+// or if symbolic links cannot be resolved.
+func ResolveRel(path string) (string, error) {
+	resolved, err := Resolve(path)
+	if err != nil {
+		return "", err
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	resolvedWd, err := filepath.EvalSymlinks(wd)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Rel(resolvedWd, resolved)
 }
 
 // CheckWritable reports whether path names a regular file that can be opened for writing.
