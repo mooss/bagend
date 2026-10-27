@@ -40,7 +40,7 @@ func toolError(tool string, err error, stderr *bytes.Buffer) error {
 func clipboardCommands() [][]string {
 	xclip := []string{"xclip", "-o", "-selection", "clipboard"}
 	xsel := []string{"xsel", "--clipboard", "--output"}
-	wlPaste := []string{"wl-paste", "-n"}
+	wlPaste := []string{"wl-paste", "--no-newline"}
 
 	if IsWayland() {
 		return [][]string{wlPaste, xclip, xsel}
@@ -76,7 +76,7 @@ func ReadClipboard() (string, error) {
 		return "", fmt.Errorf("failed to get clipboard content: no clipboard tool found (tried %s)",
 			strings.Join(cmds, ","))
 	}
-	return "", fmt.Errorf("failed to get clipboard content (tried %s): %w",
+	return "", fmt.Errorf("failed to get clipboard content (tried %s):\n%w",
 		strings.Join(tried, ", "), errors.Join(errs...))
 }
 
@@ -110,11 +110,22 @@ func WriteClipboard(content string) error {
 		cmd := exec.CommandContext(ctx, args[0], args[1:]...) //nolint:gosec
 		cmd.Stdin = strings.NewReader(content)
 		cmd.Stderr = &stderr
+
+		// Clipboard tools tend to daemonize and block forever (at least wl-copy), so the timeout
+		// kills them.
+		cmd.WaitDelay = 200 * time.Millisecond
+
 		err := cmd.Run()
+		ctxErr := ctx.Err()
 		cancel()
 		if err == nil {
 			return nil
-		} // Tool exists but failed, simply try the next one.
+		}
+		if strings.TrimSpace(stderr.String()) == "" &&
+			(ctxErr == context.DeadlineExceeded || strings.Contains(err.Error(), "signal: killed")) {
+			return nil
+		}
+		// Tool exists but failed, simply try the next one.
 		errs = append(errs, toolError(args[0], err, &stderr))
 	}
 
@@ -123,6 +134,6 @@ func WriteClipboard(content string) error {
 		return fmt.Errorf("failed to set clipboard content: no clipboard tool found (tried %s)",
 			strings.Join(cmds, ","))
 	}
-	return fmt.Errorf("failed to set clipboard content (tried %s): %w",
+	return fmt.Errorf("failed to set clipboard content (tried %s):\n%w",
 		strings.Join(tried, ", "), errors.Join(errs...))
 }
