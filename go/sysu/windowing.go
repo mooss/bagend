@@ -1,6 +1,7 @@
 package sysu
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -18,6 +19,16 @@ func IsWayland() bool {
 		return true
 	}
 	return strings.EqualFold(os.Getenv("XDG_SESSION_TYPE"), "wayland")
+}
+
+// toolError joins the tool failure with its stderr when present, so errors carry actionable causes
+// such as display connection failures instead of bare exit statuses.
+func toolError(tool string, err error, stderr *bytes.Buffer) error {
+	trimmed := strings.TrimSpace(stderr.String())
+	if trimmed == "" {
+		return fmt.Errorf("%s: %w", tool, err)
+	}
+	return fmt.Errorf("%s: %w (stderr: %s)", tool, err, trimmed)
 }
 
 ///////////////
@@ -47,15 +58,17 @@ func ReadClipboard() (string, error) {
 		if _, err := exec.LookPath(args[0]); err != nil {
 			continue
 		}
+		var stderr bytes.Buffer
 		tried = append(tried, args[0])
-
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		output, err := exec.CommandContext(ctx, args[0], args[1:]...).Output() //nolint:gosec
+		cmd := exec.CommandContext(ctx, args[0], args[1:]...) //nolint:gosec
+		cmd.Stderr = &stderr
+		output, err := cmd.Output()
 		cancel()
 		if err == nil {
 			return string(output), nil
 		} // Tool exists but failed (e.g. empty clipboard), simply try the next one.
-		errs = append(errs, fmt.Errorf("%s: %w", args[0], err))
+		errs = append(errs, toolError(args[0], err, &stderr))
 	}
 
 	if len(tried) == 0 {
@@ -92,16 +105,17 @@ func WriteClipboard(content string) error {
 			continue
 		}
 		tried = append(tried, args[0])
-
+		var stderr bytes.Buffer
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		cmd := exec.CommandContext(ctx, args[0], args[1:]...) //nolint:gosec
 		cmd.Stdin = strings.NewReader(content)
+		cmd.Stderr = &stderr
 		err := cmd.Run()
 		cancel()
 		if err == nil {
 			return nil
 		} // Tool exists but failed, simply try the next one.
-		errs = append(errs, fmt.Errorf("%s: %w", args[0], err))
+		errs = append(errs, toolError(args[0], err, &stderr))
 	}
 
 	if len(tried) == 0 {
