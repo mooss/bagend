@@ -107,3 +107,90 @@ func TestReadClipboardReportsFailuresFromAllTools(t *testing.T) {
 		}
 	}
 }
+
+// TestWriteClipboardPrefersWaylandTool checks tool selection when a Wayland display is available.
+// Both wl-copy and xclip are present, but wl-copy should be tried first and receive the content.
+func TestWriteClipboardPrefersWaylandTool(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("WAYLAND_DISPLAY", "wayland-0")
+	t.Setenv("XDG_SESSION_TYPE", "")
+
+	writeClipboardTool(t, dir, "wl-copy", "cat > "+filepath.Join(dir, "wl-copy.out"))
+	writeClipboardTool(t, dir, "xclip", "cat > "+filepath.Join(dir, "xclip.out"))
+
+	if err := WriteClipboard("wayland clipboard"); err != nil {
+		t.Fatalf("WriteClipboard() error = %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(dir, "wl-copy.out"))
+	if err != nil {
+		t.Fatalf("read wl-copy.out: %v", err)
+	}
+	if string(got) != "wayland clipboard" {
+		t.Fatalf("wl-copy received %q, want %q", got, "wayland clipboard")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "xclip.out")); !os.IsNotExist(err) {
+		t.Fatalf("xclip should not have been called, stat error = %v", err)
+	}
+}
+
+// TestWriteClipboardFallsBackWhenPreferredToolFails verifies that a failed attempt does not prevent
+// WriteClipboard from trying another available tool.
+func TestWriteClipboardFallsBackWhenPreferredToolFails(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("WAYLAND_DISPLAY", "wayland-0")
+	t.Setenv("XDG_SESSION_TYPE", "")
+
+	writeClipboardTool(t, dir, "wl-copy", "exit 1")
+	writeClipboardTool(t, dir, "xclip", "cat > "+filepath.Join(dir, "xclip.out"))
+
+	if err := WriteClipboard("fallback clipboard"); err != nil {
+		t.Fatalf("WriteClipboard() error = %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(dir, "xclip.out"))
+	if err != nil {
+		t.Fatalf("read xclip.out: %v", err)
+	}
+	if string(got) != "fallback clipboard" {
+		t.Fatalf("xclip received %q, want %q", got, "fallback clipboard")
+	}
+}
+
+// TestWriteClipboardReportsWhenNoToolsAreFound gives WriteClipboard an empty PATH.
+// Executable lookup therefore cannot find any clipboard utility, and the function should return an
+// explanatory error.
+func TestWriteClipboardReportsWhenNoToolsAreFound(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("WAYLAND_DISPLAY", "wayland-0")
+	t.Setenv("XDG_SESSION_TYPE", "")
+
+	if err := WriteClipboard("some content"); err == nil {
+		t.Fatal("WriteClipboard() error = nil, want an error")
+	} else if !strings.Contains(err.Error(), "no clipboard tool found") {
+		t.Fatalf("WriteClipboard() error = %q, want it to report no clipboard tool found", err)
+	}
+}
+
+// TestWriteClipboardReportsFailuresFromAllTools distinguishes tools being unavailable from tools
+// being present but unable to write to the clipboard.
+func TestWriteClipboardReportsFailuresFromAllTools(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("PATH", dir)
+	t.Setenv("WAYLAND_DISPLAY", "wayland-0")
+	t.Setenv("XDG_SESSION_TYPE", "")
+
+	writeClipboardTool(t, dir, "wl-copy", "exit 1")
+	writeClipboardTool(t, dir, "xclip", "exit 1")
+	writeClipboardTool(t, dir, "xsel", "exit 1")
+
+	err := WriteClipboard("some content")
+	if err == nil {
+		t.Fatal("WriteClipboard() error = nil, want an error")
+	}
+	for _, want := range []string{"wl-copy, xclip, xsel", "wl-copy:"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("WriteClipboard() error = %q, want it to contain %q", err, want)
+		}
+	}
+}

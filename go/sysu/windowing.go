@@ -66,3 +66,49 @@ func ReadClipboard() (string, error) {
 	return "", fmt.Errorf("failed to get clipboard content (tried %s): %w",
 		strings.Join(tried, ", "), errors.Join(errs...))
 }
+
+// clipboardWriteCommands returns clipboard writer commands in preferred order.
+// Wayland sessions prefer wl-copy, X11 sessions prefer xclip, with fallback to the other in case
+// of misconfigured environment or missing binaries.
+func clipboardWriteCommands() [][]string {
+	xclip := []string{"xclip", "-i", "-selection", "clipboard"}
+	xsel := []string{"xsel", "--clipboard", "--input"}
+	wlCopy := []string{"wl-copy"}
+
+	if IsWayland() {
+		return [][]string{wlCopy, xclip, xsel}
+	}
+	return [][]string{xclip, xsel, wlCopy}
+}
+
+// WriteClipboard writes content to the clipboard.
+func WriteClipboard(content string) error {
+	var tried []string
+	var errs []error
+
+	clipboardCmds := clipboardWriteCommands()
+	for _, args := range clipboardCmds {
+		if _, err := exec.LookPath(args[0]); err != nil {
+			continue
+		}
+		tried = append(tried, args[0])
+
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		cmd := exec.CommandContext(ctx, args[0], args[1:]...) //nolint:gosec
+		cmd.Stdin = strings.NewReader(content)
+		err := cmd.Run()
+		cancel()
+		if err == nil {
+			return nil
+		} // Tool exists but failed, simply try the next one.
+		errs = append(errs, fmt.Errorf("%s: %w", args[0], err))
+	}
+
+	if len(tried) == 0 {
+		cmds := lie.Map(func(el []string) string { return el[0] }, clipboardCmds)
+		return fmt.Errorf("failed to set clipboard content: no clipboard tool found (tried %s)",
+			strings.Join(cmds, ","))
+	}
+	return fmt.Errorf("failed to set clipboard content (tried %s): %w",
+		strings.Join(tried, ", "), errors.Join(errs...))
+}
