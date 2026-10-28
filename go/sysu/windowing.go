@@ -106,14 +106,14 @@ func WriteClipboard(content string) error {
 		}
 		tried = append(tried, args[0])
 		var stderr bytes.Buffer
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 		cmd := exec.CommandContext(ctx, args[0], args[1:]...) //nolint:gosec
 		cmd.Stdin = strings.NewReader(content)
 		cmd.Stderr = &stderr
 
 		// Clipboard tools tend to daemonize and block forever (at least wl-copy), so the timeout
 		// kills them.
-		cmd.WaitDelay = 200 * time.Millisecond
+		cmd.WaitDelay = 400 * time.Millisecond
 
 		err := cmd.Run()
 		ctxErr := ctx.Err()
