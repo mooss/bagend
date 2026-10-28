@@ -177,6 +177,44 @@ func TestEnsureFinal(t *testing.T) {
 	}
 }
 
+func TestPartition(t *testing.T) {
+	t.Run("splits elements by predicate preserving order", func(t *testing.T) {
+		source := []int{1, 2, 3, 4, 5, 6}
+		evens, odds := lie.Partition(func(x int) bool { return x%2 == 0 }, source)
+
+		expectedEvens := []int{2, 4, 6}
+		if len(evens) != len(expectedEvens) {
+			t.Fatalf("expected length %d, got %d", len(expectedEvens), len(evens))
+		}
+		for i := range expectedEvens {
+			if evens[i] != expectedEvens[i] {
+				t.Errorf("at index %d: expected %d, got %d", i, expectedEvens[i], evens[i])
+			}
+		}
+
+		expectedOdds := []int{1, 3, 5}
+		if len(odds) != len(expectedOdds) {
+			t.Fatalf("expected length %d, got %d", len(expectedOdds), len(odds))
+		}
+		for i := range expectedOdds {
+			if odds[i] != expectedOdds[i] {
+				t.Errorf("at index %d: expected %d, got %d", i, expectedOdds[i], odds[i])
+			}
+		}
+	})
+
+	t.Run("nil input returns empty slices", func(t *testing.T) {
+		matched, unmatched := lie.Partition(func(int) bool { return true }, nil)
+
+		if len(matched) != 0 {
+			t.Errorf("expected empty matched, got %v", matched)
+		}
+		if len(unmatched) != 0 {
+			t.Errorf("expected empty unmatched, got %v", unmatched)
+		}
+	})
+}
+
 func TestUnzip(t *testing.T) {
 	t.Run("splits elements into two slices", func(t *testing.T) {
 		source := []string{"a", "bb", "ccc"}

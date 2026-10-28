@@ -28,6 +28,25 @@ func EnsureFinal[T comparable](source []T, final T) []T {
 	return append(source, final)
 }
 
+// Partition splits a slice into two slices based on a the given predicate.
+// The first result contains the elements for which the predicate returns true, the second contains
+// the rest.
+// The relative order of elements within each partition is preserved.
+//
+//revive:disable:confusing-results
+func Partition[T any](pred func(T) bool, source []T) ([]T, []T) {
+	var matched, unmatched []T
+	for _, el := range source {
+		if pred(el) {
+			matched = append(matched, el)
+		} else {
+			unmatched = append(unmatched, el)
+		}
+	}
+
+	return matched, unmatched
+}
+
 // Unzip splits a slice into two parallel slices by applying fun to each element, collecting the
 // first and second results separately.
 func Unzip[From, Part1, Part2 any](
