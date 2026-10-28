@@ -5,43 +5,24 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/mooss/bagend/go/pipe"
 )
 
 // Resolve returns the absolute, cleaned path with symbolic links resolved.
 // It returns an error if the path cannot be made absolute or its symbolic links cannot be resolved.
 func Resolve(path string) (string, error) {
-	absolute, err := filepath.Abs(path)
-	if err != nil {
-		return "", err
-	}
-
-	resolved, err := filepath.EvalSymlinks(absolute)
-	if err != nil {
-		return "", err
-	}
-	return resolved, nil
+	return pipe.Pack(filepath.Abs, path).Chain(filepath.EvalSymlinks)()
 }
 
 // ResolveRel returns the cleaned path with symbolic links relative to the working directory.
 // It returns an error if the path cannot be made absolute or if the working dir cannot be deduced
 // or if symbolic links cannot be resolved.
 func ResolveRel(path string) (string, error) {
-	resolved, err := Resolve(path)
-	if err != nil {
-		return "", err
-	}
-
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	resolvedWd, err := filepath.EvalSymlinks(wd)
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Rel(resolvedWd, resolved)
+	relative := pipe.Bend2(filepath.Rel)
+	workdir := pipe.Bend(os.Getwd).Chain(filepath.EvalSymlinks)
+	resolved := pipe.Pack(Resolve, path)
+	return relative(workdir, resolved)
 }
 
 // CheckWritable reports whether path names a regular file that can be opened for writing.
