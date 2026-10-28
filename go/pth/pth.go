@@ -26,6 +26,8 @@ func ResolveRel(path string) (string, error) {
 
 // SplitExists returns the longest existing prefix of the given path, as well as the remaining
 // elements.
+//
+//revive:disable:confusing-results
 func SplitExists(path string) (string, string) {
 	elements := filepath.SplitList(path)
 	for i := len(elements) - 1; i >= 0; i++ {

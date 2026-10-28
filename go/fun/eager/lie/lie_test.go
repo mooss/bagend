@@ -177,6 +177,46 @@ func TestEnsureFinal(t *testing.T) {
 	}
 }
 
+func TestUnzip(t *testing.T) {
+	t.Run("splits elements into two slices", func(t *testing.T) {
+		source := []string{"a", "bb", "ccc"}
+		lens, runes := lie.Unzip(func(s string) (int, rune) {
+			return len(s), rune(s[0])
+		}, source)
+
+		expectedLens := []int{1, 2, 3}
+		if len(lens) != len(expectedLens) {
+			t.Fatalf("expected length %d, got %d", len(expectedLens), len(lens))
+		}
+		for i := range expectedLens {
+			if lens[i] != expectedLens[i] {
+				t.Errorf("at index %d: expected %d, got %d", i, expectedLens[i], lens[i])
+			}
+		}
+
+		expectedRunes := []rune{'a', 'b', 'c'}
+		if len(runes) != len(expectedRunes) {
+			t.Fatalf("expected length %d, got %d", len(expectedRunes), len(runes))
+		}
+		for i := range expectedRunes {
+			if runes[i] != expectedRunes[i] {
+				t.Errorf("at index %d: expected %q, got %q", i, expectedRunes[i], runes[i])
+			}
+		}
+	})
+
+	t.Run("empty input returns empty slices", func(t *testing.T) {
+		part1, part2 := lie.Unzip(func(x int) (int, int) { return x, x }, []int{})
+
+		if len(part1) != 0 {
+			t.Errorf("expected empty part1, got %v", part1)
+		}
+		if len(part2) != 0 {
+			t.Errorf("expected empty part2, got %v", part2)
+		}
+	})
+}
+
 func TestValidate(t *testing.T) {
 	t.Run("validates all elements in order", func(t *testing.T) {
 		var visited []int
