@@ -2,11 +2,14 @@
 package pth
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
 	"github.com/mooss/bagend/go/pipe"
+	"golang.org/x/sys/unix"
 )
 
 // CheckWritable reports whether path names a regular file that can be opened for writing.
@@ -32,10 +35,72 @@ func CheckWritable(path string) error {
 	return nil
 }
 
-// Exists returns true when the given path exists.
+// Exists reports whether the path itself exists, without following its final symlink.
+// False does not necessarily mean the path is absent, it might mean that the permissions were not
+// sufficient to check.
 func Exists(path string) bool {
 	_, err := os.Lstat(path)
 	return err == nil
+}
+
+// mayCreateUnix reports whether path is absent and the parent-directory permission check succeeds.
+// A true result is not a creation guarantee.
+// Only compiles on Unix.
+func mayCreateUnix(path string) (bool, error) {
+	// Require a filename, not an empty path or a trailing separator.
+	dir, name := filepath.Split(path)
+	if name == "" {
+		return false, os.ErrInvalid
+	}
+
+	if dir == "" {
+		dir = "."
+	}
+
+	missing, err := Missing(path)
+	if err != nil || !missing {
+		return false, err
+	}
+
+	info, err := os.Stat(dir)
+	if err != nil {
+		return false, err
+	}
+	if !info.IsDir() {
+		// ENOTDIR: a path component is not a directory.
+		return false, unix.ENOTDIR
+	}
+
+	err = unix.Faccessat(
+		unix.AT_FDCWD, // Resolve dir relative to the current working directory.
+		dir,
+		unix.W_OK|unix.X_OK, // Need write and search permission.
+		unix.AT_EACCESS,     // check using the effective user/group ID, not the real one.
+	)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// MayCreate reports whether path is absent and the parent-directory permission check succeeds.
+// A true result is not a creation guarantee.
+func MayCreate(path string) (bool, error) {
+	return mayCreateUnix(path)
+}
+
+// Missing reports whether no entry exists at path.
+// Other errors, including permission errors, are returned.
+func Missing(path string) (bool, error) {
+	_, err := os.Lstat(path)
+	switch {
+	case err == nil:
+		return false, nil
+	case errors.Is(err, fs.ErrNotExist):
+		return true, nil
+	default:
+		return false, err
+	}
 }
 
 // Resolve returns the absolute, cleaned path with symbolic links resolved.
