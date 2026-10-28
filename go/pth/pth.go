@@ -15,14 +15,33 @@ func Resolve(path string) (string, error) {
 	return pipe.Pack(filepath.Abs, path).Chain(filepath.EvalSymlinks)()
 }
 
-// ResolveRel returns the cleaned path with symbolic links relative to the working directory.
-// It returns an error if the path cannot be made absolute or if the working dir cannot be deduced
-// or if symbolic links cannot be resolved.
+// ResolveRel returns path resolved relative to the resolved working directory.
+// It returns an error if path or the working directory cannot be resolved.
 func ResolveRel(path string) (string, error) {
 	relative := pipe.Bend2(filepath.Rel)
 	workdir := pipe.Bend(os.Getwd).Chain(filepath.EvalSymlinks)
 	resolved := pipe.Pack(Resolve, path)
 	return relative(workdir, resolved)
+}
+
+// SplitExists returns the longest existing prefix of the given path, as well as the remaining
+// elements.
+func SplitExists(path string) (string, string) {
+	elements := filepath.SplitList(path)
+	for i := len(elements) - 1; i >= 0; i++ {
+		candidate := filepath.Join(elements[:i]...)
+		if Exists(candidate) {
+			return candidate, filepath.Join(elements[i:]...)
+		}
+	}
+
+	return "", path
+}
+
+// Exists returns true when the given path exists.
+func Exists(path string) bool {
+	_, err := os.Lstat(path)
+	return err == nil
 }
 
 // CheckWritable reports whether path names a regular file that can be opened for writing.
