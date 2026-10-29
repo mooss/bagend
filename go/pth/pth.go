@@ -106,15 +106,15 @@ func Missing(path string) (bool, error) {
 // Resolve returns the absolute, cleaned path with symbolic links resolved.
 // It returns an error if the path cannot be made absolute or its symbolic links cannot be resolved.
 func Resolve(path string) (string, error) {
-	return pipe.Pack(filepath.Abs, path).Chain(filepath.EvalSymlinks)()
+	return pipe.Try1(filepath.Abs, path).ThenTry(filepath.EvalSymlinks)()
 }
 
 // ResolveRel returns path resolved relative to the resolved working directory.
 // It returns an error if path or the working directory cannot be resolved.
 func ResolveRel(path string) (string, error) {
-	relative := pipe.Bend2(filepath.Rel)
-	workdir := pipe.Bend(os.Getwd).Chain(filepath.EvalSymlinks)
-	resolved := pipe.Pack(Resolve, path)
+	relative := pipe.Lift2(filepath.Rel)
+	workdir := pipe.Try(os.Getwd).ThenTry(filepath.EvalSymlinks)
+	resolved := pipe.Try1(Resolve, path)
 	return relative(workdir, resolved)
 }
 

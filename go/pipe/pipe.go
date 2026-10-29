@@ -11,16 +11,16 @@ func z[R any]() R {
 // Attempt is a fallible computation producing a Result or an error.
 type Attempt[R any] func() (R, error)
 
-// Bend bends a fallible function into an Attempt.
-func Bend[R any](fun func() (R, error)) Attempt[R] { return fun }
-
 // Pure wraps a value into an Attempt that always succeeds.
 func Pure[R any](value R) Attempt[R] {
 	return func() (R, error) { return value, nil }
 }
 
-// Pack applies a fallible function to an argument, packaging it as an Attempt.
-func Pack[A any, R any](
+// Try transforms a fallible function with no argument into an Attempt.
+func Try[R any](fun func() (R, error)) Attempt[R] { return fun }
+
+// Try1 transforms a fallible function with an argument into an Attempt.
+func Try1[A any, R any](
 	fun func(A) (R, error),
 	arg A,
 ) Attempt[R] {
@@ -40,9 +40,9 @@ func (try Attempt[A]) Then[R any](fun func(A) R) Attempt[R] {
 	}
 }
 
-// Chain forwards the result of the attempt to a fallible function.
+// ThenTry forwards the result of the attempt to a fallible function.
 // If the attempt fails, fun is not called and the error propagates.
-func (try Attempt[A]) Chain[R any](fun func(A) (R, error)) Attempt[R] {
+func (try Attempt[A]) ThenTry[R any](fun func(A) (R, error)) Attempt[R] {
 	return func() (R, error) {
 		tmp, err := try()
 		if err != nil {
@@ -59,9 +59,9 @@ func (try Attempt[A]) Chain[R any](fun func(A) (R, error)) Attempt[R] {
 // Attempt1 is a fallible computation over one Attempt argument.
 type Attempt1[A any, R any] func(Attempt[A]) (R, error)
 
-// Bend1 bends a fallible function of one argument into an Attempt1.
-// The bended function fails if its Attempt argument fails.
-func Bend1[A any, R any](
+// Lift1 transforms a fallible function of one argument into an Attempt1.
+// The attempt fails if its argument fails.
+func Lift1[A any, R any](
 	fun func(A) (R, error),
 ) Attempt1[A, R] {
 	return func(try Attempt[A]) (R, error) {
@@ -80,10 +80,9 @@ func Bend1[A any, R any](
 // Attempt2 is a fallible computation over two Attempt arguments.
 type Attempt2[A any, B any, R any] func(Attempt[A], Attempt[B]) (R, error)
 
-// Bend2 bends a fallible function of two arguments into an Attempt2.
-// The bended function evaluates its arguments in order and fails
-// with the first error encountered.
-func Bend2[A any, B any, R any](
+// Lift2 transforms a fallible function of two arguments into an Attempt2.
+// The attempt evaluates its arguments in order and fails with the first error encountered.
+func Lift2[A any, B any, R any](
 	fun func(A, B) (R, error),
 ) Attempt2[A, B, R] {
 	return func(try1 Attempt[A], try2 Attempt[B]) (R, error) {
