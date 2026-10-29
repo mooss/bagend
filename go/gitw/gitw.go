@@ -2,65 +2,137 @@
 package gitw
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/mooss/bagend/go/errs"
+	"github.com/mooss/bagend/go/obj/osl"
 )
 
-// FileIsClean requires the file to be tracked and inside the current Git repository, and rejects
-// files with unstaged changes.
-func FileIsClean(path string) error {
-	ctx := context.Background()
+// Repo represents a Git repository.
+type Repo struct {
+	ctx  context.Context
+	root string
+}
+
+// New returns the repository containing the current working directory.
+// The Repo is scoped to the lifetime of the context.
+func New(ctx context.Context) (Repo, error) {
 	repo, err := exec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel").Output()
 	if err != nil {
-		return errors.New("cannot execute outside a git repository")
+		if ctx.Err() != nil {
+			return Repo{}, ctx.Err()
+		}
+		return Repo{}, errors.New("cannot execute outside a git repository")
 	}
 
-	absolute, err := filepath.Abs(path)
-	if err != nil {
-		return fmt.Errorf("failed to resolve %q: %w", path, err)
-	}
+	return Repo{ctx: ctx, root: strings.TrimSpace(string(repo))}, nil
+}
 
-	root := strings.TrimSpace(string(repo))
-	relative, err := filepath.Rel(root, absolute)
+// Root returns the top-level directory of the repository.
+func (r Repo) Root() string {
+	return r.root
+}
+
+///////////////////////
+// Public operations //
+
+// FileIsClean requires the file to be tracked and inside the repository, and rejects files with
+// unstaged changes.
+func (r Repo) FileIsClean(path string) error {
+	relative, err := r.relativeToRoot(path)
 	if err != nil {
 		return err
 	}
-	if relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
-		return fmt.Errorf("%q is outside the git repository %q", path, root)
+
+	if err := r.ensureTracked(relative); err != nil {
+		return err
 	}
 
-	tracked, err := exec.CommandContext(
-		ctx, "git", "--literal-pathspecs", "-C", root, "ls-files", "--", relative,
-	).Output()
+	return r.ensureNoUnstagedChanges(relative)
+}
+
+/////////////////////////
+// Internal operations //
+
+// relativeToRoot resolves path to a repository-relative path, rejecting paths outside the
+// repository root.
+func (r Repo) relativeToRoot(path string) (string, error) {
+	absolute, err := filepath.Abs(path)
 	if err != nil {
-		return fmt.Errorf("checking git tracking of %q: %w", path, err)
-	}
-	if strings.TrimSpace(string(tracked)) == "" {
-		return fmt.Errorf("file %q is not tracked by git", path)
+		return "", fmt.Errorf("failed to resolve %q: %w", path, err)
 	}
 
-	var status bytes.Buffer
-	cmd := exec.CommandContext(
-		ctx, "git", "--literal-pathspecs", "-C", root, "status", "--porcelain", "--", relative,
-	)
-	cmd.Stdout = &status
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("checking git status for %q: %w", path, err)
+	relative, err := filepath.Rel(r.root, absolute)
+	if err != nil {
+		return "", err
 	}
-	if hasUnstagedChanges(status.String()) {
-		return fmt.Errorf("%q has unstaged changes", path)
+	if relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("%q is outside the git repository %q", path, r.root)
+	}
+
+	return relative, nil
+}
+
+// ensureTracked rejects files that are not tracked by git.
+func (r Repo) ensureTracked(relative string) error {
+	tracked, err := r.lsFiles(relative)
+	if err != nil {
+		return err
+	}
+
+	if strings.TrimSpace(tracked) == "" {
+		return fmt.Errorf("file %q is not tracked by git", relative)
 	}
 
 	return nil
 }
 
-// hasUnstagedChanges reports whether the Git porcelain status contains a worktree change;
-// staged-only changes do not count.
+// ensureNoUnstagedChanges rejects files with unstaged changes.
+func (r Repo) ensureNoUnstagedChanges(relative string) error {
+	status, err := r.status(relative)
+	if err != nil {
+		return err
+	}
+
+	if hasUnstagedChanges(status) {
+		return fmt.Errorf("%q has unstaged changes", relative)
+	}
+
+	return nil
+}
+
+/////////////////////
+// Utility methods //
+
+func (r Repo) run(args ...string) (string, error) {
+	args = *slc("--literal-pathspecs", "-C", r.root).Cat(args)
+	res, err := exec.CommandContext(r.ctx, "git", args...).Output()
+	return string(res), err
+}
+
+func (r Repo) lsFiles(args ...string) (string, error) {
+	wrap := errs.Wrap("checking git tracking of %v", args)
+	args = *slc("ls-files", "--").Cat(args)
+	return wrap.Result(r.run(args...))
+}
+
+func (r Repo) status(args ...string) (string, error) {
+	wrap := errs.Wrap("checking git status of %v", args)
+	args = *slc("status", "--porcelain", "--").Cat(args)
+	return wrap.Result(r.run(args...))
+}
+
+///////////////////////
+// Utility functions //
+
+func slc(args ...string) *osl.Slice[string] { return osl.NewP(args...) }
+
+// hasUnstagedChanges reports whether the porcelain status contains a worktree change.
 func hasUnstagedChanges(status string) bool {
 	for line := range strings.SplitSeq(status, "\n") {
 		if line == "" {

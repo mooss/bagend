@@ -26,6 +26,7 @@ func TestMayCreateAbsentFile(t *testing.T) {
 func TestMayCreateExistingFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "exists")
+	//nolint:gosec
 	if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -67,6 +68,7 @@ func TestMayCreateMissingParent(t *testing.T) {
 func TestMayCreateParentIsFile(t *testing.T) {
 	dir := t.TempDir()
 	parent := filepath.Join(dir, "file")
+	//nolint:gosec
 	if err := os.WriteFile(parent, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
