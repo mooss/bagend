@@ -116,13 +116,13 @@ func (r Repo) run(args ...string) (string, error) {
 }
 
 func (r Repo) lsFiles(args ...string) (string, error) {
-	wrap := errs.Wrap("checking git tracking of %v", args)
+	wrap := errs.Wrapper("checking git tracking of %v", args)
 	args = *slc("ls-files", "--").Cat(args)
 	return wrap.Result(r.run(args...))
 }
 
 func (r Repo) status(args ...string) (string, error) {
-	wrap := errs.Wrap("checking git status of %v", args)
+	wrap := errs.Wrapper("checking git status of %v", args)
 	args = *slc("status", "--porcelain", "--").Cat(args)
 	return wrap.Result(r.run(args...))
 }

@@ -19,19 +19,21 @@ func Wrapf(err error, msg string, rest ...any) error {
 ///////////////////
 // Error wrapper //
 
-// Wrapper carries a message (a format string and its arguments) that can be used to wrap errors.
+// ErrorWrapper carries a message (a format string and its arguments) that can be used to wrap
+// errors.
 // It is meant to be created once at the site of the operation being described, then applied to
 // whatever error that operation produces, via Error or Result.
-type Wrapper struct {
+type ErrorWrapper struct {
 	format string
 	args   []any
 }
 
-// Wrap returns a Wrapper that formats its message from format and args when wrapping an error.
-func Wrap(format string, args ...any) Wrapper { return Wrapper{format, args} }
+// Wrapper returns an ErrorWrapper that formats its message from the format string and arguments
+// when wrapping an error.
+func Wrapper(format string, args ...any) ErrorWrapper { return ErrorWrapper{format, args} }
 
-// Error wraps err with the Wrapper's message, if err is not nil.
-func (erw Wrapper) Error(err error) error {
+// Error wraps err with the ErrorWrapper's message if it is not nil.
+func (erw ErrorWrapper) Error(err error) error {
 	if err == nil {
 		return nil
 	}
@@ -39,10 +41,10 @@ func (erw Wrapper) Error(err error) error {
 	return erw.fmt(err)
 }
 
-// Result wraps the error with the Wrapper's message if err is not nil.
+// Result wraps err with the ErrorWrapper's message if it is not nil.
 // Otherwise it returns the result as-is.
 // It is meant to be used directly on the result of a call returning (T, error).
-func (erw Wrapper) Result[T any](res T, err error) (T, error) {
+func (erw ErrorWrapper) Result[T any](res T, err error) (T, error) {
 	if err == nil {
 		return res, nil
 	}
@@ -51,7 +53,7 @@ func (erw Wrapper) Result[T any](res T, err error) (T, error) {
 }
 
 // fmt wraps err with the Wrapper's message.
-func (erw Wrapper) fmt(err error) error {
+func (erw ErrorWrapper) fmt(err error) error {
 	// Make sure to not override the backing array, this could create weird surprises when the
 	// Wrapper is reused after an error.
 	args := append(slices.Clone(erw.args), err)
