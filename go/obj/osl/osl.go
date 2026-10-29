@@ -6,6 +6,12 @@ import "slices"
 // Slice is a slice of elements of type T.
 type Slice[T any] []T
 
+// EmptyP returns an empty slice pointer.
+func EmptyP[T any]() *Slice[T] {
+	var res Slice[T] = []T{}
+	return &res
+}
+
 // New returns a Slice containing el.
 func New[T any](el ...T) Slice[T] {
 	return Slice[T](el)
