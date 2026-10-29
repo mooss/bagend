@@ -59,11 +59,9 @@ func (m Map[K, V]) Contains(key K) bool {
 	return ok
 }
 
-// Get returns the value for key and whether it was present.
-func (m Map[K, V]) Get(key K) (V, bool) {
-	v, ok := m[key]
-	return v, ok
-}
+// Get returns the value for key.
+// Returns the zero value if key is absent.
+func (m Map[K, V]) Get(key K) V { return m[key] }
 
 // Empty reports whether the map is empty.
 func (m Map[K, V]) Empty() bool { return len(m) == 0 }
