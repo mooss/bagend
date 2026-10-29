@@ -1,5 +1,7 @@
 package pipe
 
+import "github.com/mooss/bagend/go/errs"
+
 func z[R any]() R {
 	var zero R
 	return zero
@@ -51,6 +53,35 @@ func (try Attempt[A]) ThenTry[R any](fun func(A) (R, error)) Attempt[R] {
 
 		return fun(tmp)
 	}
+}
+
+// Validate forwards the result of the attempt to a validation function.
+// If the attempt fails, the error is propagated, otherwise the result is validated and the error
+// produced is propagated if non-nil.
+func (try Attempt[A]) Validate(fun func(A) error) Attempt[A] {
+	return func() (A, error) {
+		tmp, err := try()
+		if err != nil {
+			return z[A](), err
+		}
+
+		if err := fun(tmp); err != nil {
+			return z[A](), err
+		}
+
+		return tmp, nil
+	}
+}
+
+// Err executes the attempt and returns only the error.
+func (try Attempt[A]) Err() error {
+	_, err := try()
+	return err
+}
+
+// Wrap wraps the error, if any with the given format and arguments.
+func (try Attempt[A]) Wrap(format string, args ...any) Attempt[A] {
+	return func() (A, error) { return errs.Wrapper(format, args).Result(try()) }
 }
 
 //////////////

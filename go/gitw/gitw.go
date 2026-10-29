@@ -11,6 +11,7 @@ import (
 
 	"github.com/mooss/bagend/go/errs"
 	"github.com/mooss/bagend/go/obj/osl"
+	"github.com/mooss/bagend/go/pipe"
 )
 
 // Repo represents a Git repository.
@@ -44,16 +45,10 @@ func (r Repo) Root() string {
 // FileIsClean requires the file to be tracked and inside the repository, and rejects files with
 // unstaged changes.
 func (r Repo) FileIsClean(path string) error {
-	relative, err := r.relativeToRoot(path)
-	if err != nil {
-		return err
-	}
-
-	if err := r.ensureTracked(relative); err != nil {
-		return err
-	}
-
-	return r.ensureNoUnstagedChanges(relative)
+	return pipe.Try1(r.relativeToRoot, path).
+		Validate(r.ensureTracked).
+		Validate(r.ensureNoUnstagedChanges).
+		Err()
 }
 
 /////////////////////////
